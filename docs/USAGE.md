@@ -28,6 +28,6 @@ Check out the [Demo Video!](../demo/demo.mp4)
 
 ## 📌 Notes
 ``` c
-// TODO: Add any special instructions, caveats, or tips 
+// TODO: Add any special instructions, caveats, or tips
 // for using your project.
 ```

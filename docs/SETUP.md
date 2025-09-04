@@ -10,7 +10,7 @@ Follow the steps below to set up and run the project. (Example)
 
 ## 📦 Requirements
 ``` c
-// TODO: List software, runtimes, frameworks, and or dependencies 
+// TODO: List software, runtimes, frameworks, and or dependencies
 // along with instructions on how to set each up.
 ```
 - Example: Node.js v18+

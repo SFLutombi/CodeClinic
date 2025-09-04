@@ -9,7 +9,7 @@
 
 ## 🚀 Summary
 ``` c
-// TODO: Write a short, high-level description of your 
+// TODO: Write a short, high-level description of your
 // project (2–3 sentences).
 ```
 

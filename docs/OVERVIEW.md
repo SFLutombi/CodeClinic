@@ -1,4 +1,4 @@
-> *This document serves as a template for you to write a brief overview of your project.*
+> *This document serves as a template for you to write a **brief overview** of your project.*
 
 # Project Overview
 

@@ -1,6 +1,6 @@
-> *This document serves as a template for you to write setup instructions for your project.* 
+> *This document serves as a template for you to write **setup** instructions for your project.* 
 
-> Depending on the scale/complexity of your project, it may prove beneficial to have a **Python/Batch/Bash** script in the `scripts/` directory which *automatically sets-up* the project.*
+> Depending on the scale/complexity of your project, it may prove beneficial to have a **Python/Batch/Bash** script in the `scripts/` directory which *automatically sets-up* the project.
 
 # Setup Instructions
 
@@ -27,7 +27,9 @@ cd <repo-name>
 
 # Install dependencies
 <insert command here>
+```
 
-# Compile/Run/Deploy project
-<insert command here>
+## ▶️ Running the Project
+``` bash
+<insert run command here> # Or an explanation on what to do
 ```

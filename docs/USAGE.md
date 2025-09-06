@@ -22,9 +22,11 @@ npm start
 
 ## 🎥 Demo
 ``` c
-// TODO: Link your demo video here
+// TODO: Link your demo video and PowerPoint here
 ```
-Check out the [Demo Video!](../demo/demo.mp4)
+Check out the Demos: 
+- [Demo Video](../demo/demo.mp4)
+- [Demo Presentation](../demo/demo.pptx)
 
 ## 📌 Notes
 ``` c

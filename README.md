@@ -133,6 +133,8 @@ That’s enough for a complete and valid submission 🚀 — the rest (like Dock
 ## 🧩 Example Submission
 Check out a very basic example submission repository [here](https://github.com/DnA-IntRicate/SAIntervarsityHackathonExampleSubmission2025).
 
+---
+
 ## 🙌 Brought to you by
 - [UCT Developer Society](https://www.linkedin.com/company/uct-developers-society)
 - [UCT AI Society](https://www.linkedin.com/company/uctaisociety/)

@@ -4,6 +4,11 @@
 
 # Team Information
 
+## ⚒️ Team Name
+``` c
+// TODO: Fill-in the name of your team.
+```
+
 ## 👥 Members
 | Name     | Role                | Institution           |
 |----------|---------------------|-----------------------|

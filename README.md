@@ -26,7 +26,7 @@ Welcome to the official **Hackathon Submission Template** for the **South Africa
 ├── .editorconfig
 ├── .gitattributes
 ├── .gitignore
-├── DockerFile
+├── Dockerfile
 ├── LICENSE
 └── README.md
 ```
@@ -95,14 +95,48 @@ Welcome to the official **Hackathon Submission Template** for the **South Africa
 
 ---
 
-## 📌 Tips
+## 📑 Documentation Checklist
 
-- Keep your code and assets organized within `src/` and `assets/`.  
-- Use `.editorconfig` and `.gitattributes` to avoid formatting and line-ending issues.  
-- Follow the folder structure strictly — it will make judging smoother and faster.  
+| File                  | Required? | Notes                                                          |
+| --------------------- | --------- | -------------------------------------------------------------- |
+| `TEAM.md`             | ✅         | Must list all team members, their roles, and institutions      |
+| `OVERVIEW.md`         | ✅         | High-level description of your project and its purpose         |
+| `SETUP.md`            | ✅         | Instructions to install dependencies and run the project       |
+| `USAGE.md`            | ✅         | How to use/test the project after setup                        |
+| `ACKNOWLEDGEMENTS.md` | ✅         | Credit all third-party libraries, datasets, and resources used |
+| `LICENSE`             | ✅         | Include license type and add your team members’ names          |
+| `tests/`              | Optional  | Add test scripts or instructions if relevant                   |
+| `Dockerfile`          | Optional  | Only if you choose to containerize your project                |
+| Extra docs            | Optional  | Additional guides, design notes, or API references             |
 
 ---
 
-Good luck and happy hacking! 🚀
+## 📌 Tips & Other Remarks
 
-## Brought to you by??? Maybe idk
+- Keep your code and assets organized within the `src/` and `assets/` directories.  
+- Use `.editorconfig` and `.gitattributes` to avoid formatting and line-ending issues.  
+- Follow the folder structure strictly — it will make judging smoother and faster.  
+- It is highly recommended that you use **Docker** for your submission however, it is **not required**. If you opt to **not** use **Docker**, please ensure that your setup instructions in `SETUP.md` are **straightforward**, **correct**, **comprehensive** and **cross-platform** (if applicable) to ensure that your submission will be graded properly.
+- It is also recommended that you work with a **tech-stack** or **build-system** that is **platform-agnostic**. For example: if your project is written in `C++` - which is **platform-dependent**, you may need to ensure that it compiles correctly accross multiple toolchains/compilers for different platforms, thereby creating the added-complexity of having to maintain multiple build-targets - such as having to support both **MSVC for Windows** (using `WIN32` for OS-calls) and **GCC for Linux** (using `POSIX` for OS-calls). However, using a language like `Java` may work much better, since `Java` code is inherently **platform-agnostic** as it runs on a *virtual machine* which abstracts away the lower-level OS-calls.
+---
+
+### 💡 Note for First-Time Hackathon Participants
+If this is your **first hackathon** or you’re **new to GitHub**, don’t stress — just:  
+1. Use this template repo as-is.  
+2. Fill in the required documentation files (`TEAM.md`, `OVERVIEW.md`, `SETUP.md`, `USAGE.md`, `ACKNOWLEDGEMENTS.md`, `LICENSE`).  
+3. Put your code in the `src/` folder and assets in `assets/`.  
+
+That’s enough for a complete and valid submission 🚀 — the rest (like Docker, tests, extra docs) is **optional polish**.
+
+---
+
+## 🙌 Brought to you by
+- [UCT Developer Society](https://www.linkedin.com/company/uct-developers-society)
+- [UCT AI Society](https://www.linkedin.com/company/uctaisociety/)
+- Stellenbosch AI Society
+- [Wits Developer Society](https://www.linkedin.com/company/wits-developer-society/)
+- [UJ Developer Society](https://www.linkedin.com/company/uj-developerss-society/)
+- [UWC IT Society](https://www.linkedin.com/company/uwc-it-society/)
+- [UNISA Developer Society](https://www.linkedin.com/company/unisa-developer-society/)
+
+### Good luck and happy hacking! 🚀

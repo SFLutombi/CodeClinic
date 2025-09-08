@@ -38,12 +38,11 @@ Welcome to the official **Hackathon Submission Template** for the **South Africa
     All assets used by your project such as **images**, **audio files**, **3D models**, **datasets** and so-on, should be placed in this folder.
 
 - **demo/**  
-    Your **demo video**, **PowerPoint presentation** and or any **examples** should be placed in this folder.
+    Your **demo video**, **PowerPoint presentation**, **Overview readme doc** and or any **examples** should be placed in this folder.
 
 - **docs/**  
     Contains essential documentation about your team and project (these must be written by you):
     - `ACKNOWLEDGEMENTS.md` → References all third-party libraries and sources used
-    - `OVERVIEW.md` → Project overview and key features  
     - `SETUP.md` → Instructions for installing dependencies and running the project  
     - `TEAM.md` → Team member names, roles, and contact info  
     - `USAGE.md` → Instructions for using or testing the project 

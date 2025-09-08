@@ -9,10 +9,10 @@ Welcome to the official **Hackathon Submission Template** for the **South Africa
 ├── assets/
 │   └── README.md
 ├── demo/
+│   ├── OVERVIEW.md
 │   └── README.md
 ├── docs/
 │   ├── ACKNOWLEDGEMENTS.md
-│   ├── OVERVIEW.md
 │   ├── SETUP.md
 │   ├── TEAM.md
 │   └── USAGE.md

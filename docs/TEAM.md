@@ -10,12 +10,12 @@
 ```
 
 ## 👥 Members
-| Name     | Role                | Institution           |
-|----------|---------------------|-----------------------|
-| **Name 1**   | Backend Developer   | University of Cape Town |
-| **Name 2**   | Frontend Developer  | University of the Witwatersrand |
-| **Name 3**   | Designer            | University of Johannesburg |
-| **Name 4**   | Q.A Tester          | University of the Western Cape |
+| Name     | Role                | Institution           | Discord Handle | Email |
+|----------|---------------------|-----------------------| -------------------|-------------|
+| **Name 1**   | Backend Developer   | University of Cape Town | name1 | <email1@gmail.com> |
+| **Name 2**   | Frontend Developer  | University of the Witwatersrand | name2 | <email2@gmail.com> |
+| **Name 3**   | Designer            | University of Johannesburg | name3 | <email3@gmail.com> |
+| **Name 4**   | Q.A Tester          | University of the Western Cape | name4 | <email4@gmail.com> |
 
 ## 🏫 Institution
 ``` c
@@ -23,7 +23,6 @@
 // team is competing under.
 ```
 
-## 📧 Contact Info
-- Team Email: <email@example.com>
-- GitHub: <https://github.com/your-team>
-- Other (if available): LinkedIn, Website, etc.
+## 📧 Other Contact Info
+- GitHub Repo: <https://github.com/user-name/repo-name>
+- Other Info (if available): LinkedIn, Website, etc.

@@ -132,6 +132,8 @@ That’s enough for a complete and valid submission 🚀 — the rest (like Dock
 ## 🧩 Example Submission
 Check out a very basic example submission repository [here](https://github.com/DnA-IntRicate/SAIntervarsityHackathonExampleSubmission2025).
 
+We've also created a **demo video** showcasing the **example submission** and how to get started with this **template repository**, check it out [here](https://youtu.be/e2R9APyatU4).
+
 ---
 
 ## 🙌 Brought to you by

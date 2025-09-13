@@ -33,12 +33,43 @@ print_error() {
 # Check if Docker is installed
 check_docker() {
     print_status "Checking Docker installation..."
-if command -v docker &> /dev/null; then
+    if command -v docker &> /dev/null; then
         print_success "Docker is installed"
         return 0
     else
         print_error "Docker is not installed. Please install Docker first."
         print_status "Visit: https://docs.docker.com/get-docker/"
+        return 1
+    fi
+}
+
+# Check Docker permissions
+check_docker_permissions() {
+    print_status "Checking Docker permissions..."
+    if docker ps > /dev/null 2>&1; then
+        print_success "Docker permissions OK"
+        return 0
+    else
+        print_error "Docker permission denied!"
+        echo ""
+        echo "🔧 DOCKER PERMISSIONS FIX REQUIRED:"
+        echo "=================================="
+        echo ""
+        echo "1. Add your user to docker group:"
+        echo "   sudo usermod -aG docker $USER"
+        echo ""
+        echo "2. Log out and log back in (or restart your computer)"
+        echo ""
+        echo "3. Or start a new terminal session and try again"
+        echo ""
+        echo "4. Quick fix - run with sudo (not recommended):"
+        echo "   sudo ./scripts/start-codeclinic.sh"
+        echo ""
+        echo "5. Or fix permissions now:"
+        echo "   sudo usermod -aG docker $USER && echo 'Please logout/login or restart'"
+        echo ""
+        echo "⚠️  The group change requires a new login session to take effect!"
+        echo ""
         return 1
     fi
 }
@@ -64,6 +95,8 @@ check_redis() {
         return 0
     else
         print_warning "Redis is not running. Starting Redis..."
+        print_status "Downloading Redis image (this may take a moment)..."
+        docker pull redis:7-alpine --quiet
         docker run -d --name codeclinic-redis -p 6379:6379 redis:7-alpine
         sleep 5
         if docker ps | grep -q redis; then
@@ -83,10 +116,19 @@ start_zap_workers() {
     # Number of workers (default: 4)
     WORKERS=${1:-4}
     
+    # Download ZAP image first
+    print_status "Downloading ZAP image (this may take a moment)..."
+    docker pull owasp/zap2docker-stable --quiet
+    
     for i in $(seq 1 $WORKERS); do
         PORT=$((8080 + i - 1))
         print_status "Starting ZAP worker $i on port $PORT..."
         
+        # Stop existing container if running
+        docker stop codeclinic-zap-$i 2>/dev/null
+        docker rm codeclinic-zap-$i 2>/dev/null
+        
+        # Start new ZAP instance
         docker run -d \
             --name codeclinic-zap-$i \
             -p $PORT:8080 \
@@ -240,6 +282,10 @@ main() {
     
     # Check prerequisites
     if ! check_docker; then
+        exit 1
+    fi
+    
+    if ! check_docker_permissions; then
         exit 1
     fi
     

@@ -14,6 +14,7 @@ import logging
 from models import ScanRequest, ScanResponse, Vulnerability, ScanStatus
 from zap_integration import ZAPScanner
 from url_validator import URLValidator
+from gemini_integration import gemini_integration, ZAPDataRequest, GameResponse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -55,6 +56,7 @@ async def health_check():
     return {
         "status": "healthy",
         "zap_available": await zap_scanner.is_zap_available(),
+        "gemini_available": gemini_integration.is_available(),
         "version": "1.0.0"
     }
 
@@ -154,6 +156,91 @@ async def get_scan_results(scan_id: str):
         raise HTTPException(status_code=400, detail="Scan not yet completed")
     
     return scan_data
+
+@app.post("/generate-game")
+async def generate_cybersec_game(request: ZAPDataRequest):
+    """
+    Generate cybersecurity training questions from ZAP scan data
+    
+    Args:
+        request: ZAPDataRequest containing ZAP data and number of questions
+        
+    Returns:
+        JSON payload with generated questions only
+    """
+    try:
+        if not gemini_integration.is_available():
+            raise HTTPException(
+                status_code=503, 
+                detail="Gemini API is not available. Please check GEMINI_API_KEY environment variable."
+            )
+        
+        logger.info(f"Generating {request.num_questions} questions from ZAP data")
+        result = await gemini_integration.generate_cybersec_questions(
+            zap_data=request.zap_data,
+            num_questions=request.num_questions
+        )
+        
+        # Return only the exercises array as JSON payload
+        return {"questions": result.exercises}
+        
+    except Exception as e:
+        logger.error(f"Error generating cybersecurity questions: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
+
+
+@app.post("/scan/{scan_id}/generate-questions", response_model=GameResponse)
+async def generate_questions_from_scan(scan_id: str, num_questions: int = 25):
+    """
+    Generate cybersecurity questions from completed scan results
+    
+    Args:
+        scan_id: ID of the completed scan
+        num_questions: Number of questions to generate (1-50)
+        
+    Returns:
+        GameResponse with generated questions
+    """
+    try:
+        if scan_id not in scan_results:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        
+        scan_data = scan_results[scan_id]
+        if scan_data["status"] != "completed":
+            raise HTTPException(status_code=400, detail="Scan not yet completed")
+        
+        if not gemini_integration.is_available():
+            raise HTTPException(
+                status_code=503, 
+                detail="Gemini API is not available. Please check GEMINI_API_KEY environment variable."
+            )
+        
+        # Convert vulnerabilities to ZAP data format
+        zap_data = _format_vulnerabilities_for_gemini(scan_data["vulnerabilities"])
+        
+        result = await gemini_integration.generate_cybersec_questions(
+            zap_data=zap_data,
+            num_questions=num_questions
+        )
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating questions from scan {scan_id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
+
+def _format_vulnerabilities_for_gemini(vulnerabilities: List[Vulnerability]) -> str:
+    """Format vulnerabilities list into ZAP data format for Gemini"""
+    if not vulnerabilities:
+        return "No vulnerabilities found in scan."
+    
+    formatted_data = []
+    for vuln in vulnerabilities:
+        formatted_data.append(f"{vuln.name} - {vuln.severity} - {vuln.url}")
+    
+    return "\n".join(formatted_data)
 
 async def run_scan(scan_id: str, url: str, scan_type: str):
     """Background task to run the actual scan"""

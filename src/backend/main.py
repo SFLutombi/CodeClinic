@@ -70,12 +70,15 @@ async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
         ScanResponse with scan ID and initial status
     """
     try:
+        # Convert Pydantic URL to string
+        url_str = str(request.url)
+        
         # Validate URL
-        if not url_validator.is_valid_url(request.url):
+        if not url_validator.is_valid_url(url_str):
             raise HTTPException(status_code=400, detail="Invalid URL format")
         
         # Check if URL is accessible
-        if not await url_validator.is_accessible(request.url):
+        if not await url_validator.is_accessible(url_str):
             raise HTTPException(status_code=400, detail="URL is not accessible")
         
         # Generate scan ID
@@ -84,7 +87,7 @@ async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
         # Initialize scan result
         scan_results[scan_id] = {
             "id": scan_id,
-            "url": request.url,
+            "url": url_str,
             "scan_type": request.scan_type,
             "status": "initializing",
             "vulnerabilities": [],
@@ -93,7 +96,7 @@ async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
         }
         
         # Start background scan
-        background_tasks.add_task(run_scan, scan_id, request)
+        background_tasks.add_task(run_scan, scan_id, url_str, request.scan_type)
         
         return ScanResponse(
             scan_id=scan_id,
@@ -102,7 +105,7 @@ async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
         )
         
     except Exception as e:
-        logger.error(f"Error starting scan: {str(e)}")
+        logger.error(f"Error starting scan: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to start scan: {str(e)}")
 
 @app.get("/scan/{scan_id}/status")
@@ -152,35 +155,39 @@ async def get_scan_results(scan_id: str):
     
     return scan_data
 
-async def run_scan(scan_id: str, request: ScanRequest):
+async def run_scan(scan_id: str, url: str, scan_type: str):
     """Background task to run the actual scan"""
     try:
+        logger.info(f"Starting scan {scan_id} for URL: {url}")
         scan_results[scan_id]["status"] = "discovering_pages"
         scan_results[scan_id]["progress"] = 10
         
         # Discover pages
-        pages = await zap_scanner.discover_pages(request.url)
+        logger.info(f"Discovering pages for {url}")
+        pages = await zap_scanner.discover_pages(url)
         scan_results[scan_id]["pages"] = pages
         scan_results[scan_id]["status"] = "pages_discovered"
         scan_results[scan_id]["progress"] = 30
         
         # If full site scan, continue automatically
-        if request.scan_type == "full_site":
+        if scan_type == "full_site":
             scan_results[scan_id]["status"] = "scanning"
             scan_results[scan_id]["progress"] = 50
             
             # Run ZAP scan
-            vulnerabilities = await zap_scanner.run_scan(request.url, pages)
+            logger.info(f"Running ZAP scan for {url}")
+            vulnerabilities = await zap_scanner.run_scan(url, pages)
             scan_results[scan_id]["vulnerabilities"] = vulnerabilities
             scan_results[scan_id]["status"] = "completed"
             scan_results[scan_id]["progress"] = 100
+            logger.info(f"Scan {scan_id} completed with {len(vulnerabilities)} vulnerabilities")
             
         # If selective scan, wait for page selection
         else:
             scan_results[scan_id]["status"] = "waiting_for_selection"
             
     except Exception as e:
-        logger.error(f"Scan {scan_id} failed: {str(e)}")
+        logger.error(f"Scan {scan_id} failed: {str(e)}", exc_info=True)
         scan_results[scan_id]["status"] = "failed"
         scan_results[scan_id]["error"] = str(e)
 

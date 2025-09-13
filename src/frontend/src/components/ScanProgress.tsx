@@ -68,15 +68,19 @@ export default function ScanProgress({ scanId }: ScanProgressProps) {
 
         {/* Progress Bar */}
         <div className="mb-8">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>Progress</span>
-            <span>{progress}%</span>
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-lg font-medium text-gray-700">Scan Progress</span>
+            <div className="text-2xl font-bold text-blue-600">{progress}%</div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
+          <div className="w-full bg-gray-200 rounded-full h-4">
             <div 
-              className="bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
+              className="bg-blue-600 h-4 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
               style={{ width: `${progress}%` }}
-            ></div>
+            >
+              {progress > 15 && (
+                <span className="text-white text-xs font-medium">{progress}%</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -89,13 +93,16 @@ export default function ScanProgress({ scanId }: ScanProgressProps) {
                   <span className="text-white text-sm font-medium">{currentStep + 1}</span>
                 </div>
               </div>
-              <div className="ml-4">
+              <div className="ml-4 flex-1">
                 <h3 className="text-lg font-medium text-blue-900">
                   {steps[currentStep]?.name || 'Processing...'}
                 </h3>
                 <p className="text-blue-700">
                   {steps[currentStep]?.description || 'Please wait while we process your request...'}
                 </p>
+                <div className="mt-2 text-sm text-blue-600 font-medium">
+                  {progress}% Complete
+                </div>
               </div>
             </div>
           </div>

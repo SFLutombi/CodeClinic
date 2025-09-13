@@ -24,7 +24,7 @@ cd src/backend
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
     echo "📦 Creating virtual environment..."
-    python -m venv venv
+    python3 -m venv venv
 fi
 
 # Activate virtual environment
@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 # Start backend in background
 echo "🚀 Starting FastAPI server..."
-python run.py &
+python3 run.py &
 BACKEND_PID=$!
 
 # Wait a moment for backend to start

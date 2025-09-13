@@ -29,7 +29,8 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start scan');
+        const errorText = await response.text();
+        throw new Error(`Failed to start scan: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();

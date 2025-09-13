@@ -41,7 +41,7 @@ cd CodeClinic
 cd src/backend
 
 # Create virtual environment (recommended)
-python -m venv venv
+python3 -m venv venv
 
 # Activate virtual environment
 # On Linux/macOS:
@@ -85,7 +85,7 @@ Make sure OWASP ZAP is running on `localhost:8080`
 ### 2. Start the Backend Server
 ```bash
 # From src/backend directory
-python run.py
+python3 run.py
 # OR
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```

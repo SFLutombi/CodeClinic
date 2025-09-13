@@ -14,8 +14,14 @@ export default function URLInputForm({ onScanStart }: URLInputFormProps) {
 
   const validateUrl = (url: string): boolean => {
     try {
-      new URL(url);
-      return url.startsWith('http://') || url.startsWith('https://');
+      // Add https:// if no protocol is provided
+      let urlToValidate = url.trim();
+      if (!urlToValidate.startsWith('http://') && !urlToValidate.startsWith('https://')) {
+        urlToValidate = 'https://' + urlToValidate;
+      }
+      
+      new URL(urlToValidate);
+      return true;
     } catch {
       return false;
     }
@@ -30,23 +36,29 @@ export default function URLInputForm({ onScanStart }: URLInputFormProps) {
     }
 
     if (!validateUrl(url)) {
-      alert('Please enter a valid URL (must start with http:// or https://)');
+      alert('Please enter a valid URL');
       return;
+    }
+
+    // Normalize URL - add https:// if no protocol provided
+    let normalizedUrl = url.trim();
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = 'https://' + normalizedUrl;
     }
 
     setIsValidating(true);
     
     try {
       // Basic URL accessibility check
-      const response = await fetch(url, { 
+      const response = await fetch(normalizedUrl, { 
         method: 'HEAD',
         mode: 'no-cors' // This will work for same-origin or CORS-enabled sites
       });
       
-      onScanStart(url, scanType);
+      onScanStart(normalizedUrl, scanType);
     } catch (error) {
       // Even if CORS fails, we can still try the scan
-      onScanStart(url, scanType);
+      onScanStart(normalizedUrl, scanType);
     } finally {
       setIsValidating(false);
     }
@@ -86,7 +98,7 @@ export default function URLInputForm({ onScanStart }: URLInputFormProps) {
                 id="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com"
+                placeholder="webwriter.io or https://example.com"
                 className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
                 required
               />

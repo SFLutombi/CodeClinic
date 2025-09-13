@@ -5,7 +5,6 @@ Handles URL validation and accessibility checking
 
 import asyncio
 import httpx
-import validators
 from urllib.parse import urlparse
 import logging
 
@@ -28,11 +27,7 @@ class URLValidator:
             True if URL is valid, False otherwise
         """
         try:
-            # Use validators library for basic URL validation
-            if not validators.url(url):
-                return False
-            
-            # Additional checks
+            # Basic URL validation using urllib.parse
             parsed = urlparse(url)
             
             # Must have scheme and netloc
@@ -41,6 +36,10 @@ class URLValidator:
             
             # Only allow http and https
             if parsed.scheme not in ['http', 'https']:
+                return False
+            
+            # Check if URL starts with http:// or https://
+            if not url.startswith(('http://', 'https://')):
                 return False
             
             return True

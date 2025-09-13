@@ -80,8 +80,6 @@ export default function GeminiQuestionsPage() {
     switch (type.toLowerCase()) {
       case 'mcq':
         return 'bg-blue-100 text-blue-800';
-      case 'short_answer':
-        return 'bg-purple-100 text-purple-800';
       case 'fix_config':
         return 'bg-orange-100 text-orange-800';
       case 'sandbox':
@@ -211,7 +209,9 @@ export default function GeminiQuestionsPage() {
                   <div className="mb-4">
                     <h4 className="font-semibold text-gray-900 mb-2">Answer:</h4>
                     <p className="text-green-700 font-medium">
-                      {question.answer_key.join(', ')}
+                      {question.exercise_type === 'sandbox' 
+                        ? question.answer_key.join('\n') 
+                        : question.answer_key.join(', ')}
                     </p>
                   </div>
 

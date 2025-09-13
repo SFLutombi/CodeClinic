@@ -323,18 +323,26 @@ class GeminiIntegration:
 Here is the ZAP scan data:
 {zap_data}
 
-Create exactly {num_questions} questions based on these vulnerabilities. Each question should be a JSON object with these fields:
+Create exactly {num_questions} questions based on these vulnerabilities. Only generate question types that have deterministic answers.
+
+Each question should be a JSON object with these fields:
 - vuln_type: short vulnerability identifier
 - title: question title
 - short_explain: 1-2 sentence explanation
-- exercise_type: one of ["mcq", "short_answer", "fix_config", "sandbox"]  
+- exercise_type: one of ["mcq", "fix_config", "sandbox"]
 - exercise_prompt: the actual question
-- choices: array of {{id, text}} for mcq/fix_config, empty array for others
-- answer_key: array of correct answers
+- choices: array of {{id, text}} for mcq/fix_config, empty array for sandbox
+- answer_key: array of correct answers (must match choice ids for mcq/fix_config, or exact expected output for sandbox)
 - hints: array of helpful hints
 - difficulty: "beginner", "intermediate", or "advanced"
 - xp: points awarded (50-300)
 - badge: achievement badge name
+
+Constraints:
+- Ensure all answers are deterministic and unambiguous.
+- For mcq and fix_config, only one correct answer.
+- For sandbox, provide exact expected outputs (no subjective answers).
+- Do not generate any free-text or open-ended questions.
 
 Return ONLY a valid JSON array of {num_questions} question objects. No other text."""
     
@@ -362,6 +370,9 @@ Return ONLY a valid JSON array of {num_questions} question objects. No other tex
                 'difficulty', 'xp', 'badge'
             ]
             
+            # Validate exercise types
+            valid_exercise_types = ['mcq', 'fix_config', 'sandbox']
+            
             for i, exercise in enumerate(exercises):
                 if not isinstance(exercise, dict):
                     raise ValueError(f"Exercise {i} is not a dictionary")
@@ -369,6 +380,15 @@ Return ONLY a valid JSON array of {num_questions} question objects. No other tex
                 for field in required_fields:
                     if field not in exercise:
                         raise ValueError(f"Exercise {i} missing required field: {field}")
+                
+                # Validate exercise type
+                if exercise['exercise_type'] not in valid_exercise_types:
+                    raise ValueError(f"Exercise {i} has invalid exercise_type: {exercise['exercise_type']}. Must be one of {valid_exercise_types}")
+                
+                # Validate answer_key has only one answer for mcq and fix_config
+                if exercise['exercise_type'] in ['mcq', 'fix_config']:
+                    if len(exercise['answer_key']) != 1:
+                        raise ValueError(f"Exercise {i} ({exercise['exercise_type']}) must have exactly one answer")
             
             return exercises
             

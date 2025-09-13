@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import QuestionCard from '@/components/QuestionCard';
 
 interface Question {
   vuln_type: string;
   title: string;
   short_explain: string;
-  exercise_type: string;
+  exercise_type: 'mcq' | 'fix_config' | 'sandbox';
   exercise_prompt: string;
   choices: Array<{ id: string; text: string }>;
   answer_key: string[];
   hints: string[];
-  difficulty: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
   xp: number;
   badge: string;
 }
@@ -20,12 +21,27 @@ interface GeminiResponse {
   questions: Question[];
 }
 
+interface GameStats {
+  totalQuestions: number;
+  correctAnswers: number;
+  totalXp: number;
+  badgesEarned: string[];
+}
+
 export default function GeminiQuestionsPage() {
   const [zapData, setZapData] = useState('');
   const [numQuestions, setNumQuestions] = useState(20);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [gameStats, setGameStats] = useState<GameStats>({
+    totalQuestions: 0,
+    correctAnswers: 0,
+    totalXp: 0,
+    badgesEarned: []
+  });
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
 
   const handleGenerateQuestions = async () => {
     if (!zapData.trim()) {
@@ -56,6 +72,14 @@ export default function GeminiQuestionsPage() {
 
       const data: GeminiResponse = await response.json();
       setQuestions(data.questions);
+      setGameStats({
+        totalQuestions: data.questions.length,
+        correctAnswers: 0,
+        totalXp: 0,
+        badgesEarned: []
+      });
+      setCurrentQuestionIndex(0);
+      setGameStarted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -63,31 +87,45 @@ export default function GeminiQuestionsPage() {
     }
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'beginner':
-        return 'bg-green-100 text-green-800';
-      case 'intermediate':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'advanced':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const handleAnswer = (isCorrect: boolean, xpEarned: number, timeTaken: number) => {
+    setGameStats(prev => ({
+      ...prev,
+      correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
+      totalXp: prev.totalXp + xpEarned,
+      badgesEarned: isCorrect ? [...prev.badgesEarned, questions[currentQuestionIndex].badge] : prev.badgesEarned
+    }));
+  };
+
+  const goToQuestion = (index: number) => {
+    if (index >= 0 && index < questions.length) {
+      setCurrentQuestionIndex(index);
     }
   };
 
-  const getExerciseTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'mcq':
-        return 'bg-blue-100 text-blue-800';
-      case 'fix_config':
-        return 'bg-orange-100 text-orange-800';
-      case 'sandbox':
-        return 'bg-pink-100 text-pink-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const goToNextQuestion = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
+
+  const goToPreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  const resetGame = () => {
+    setQuestions([]);
+    setGameStats({
+      totalQuestions: 0,
+      correctAnswers: 0,
+      totalXp: 0,
+      badgesEarned: []
+    });
+    setCurrentQuestionIndex(0);
+    setGameStarted(false);
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -153,87 +191,178 @@ export default function GeminiQuestionsPage() {
           )}
         </div>
 
-        {/* Results */}
-        {questions.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-              🎯 Generated Questions ({questions.length})
-            </h2>
+        {/* Game Stats */}
+        {gameStarted && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold text-gray-900">
+                🎮 Game Progress
+              </h2>
+              <button
+                onClick={resetGame}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                🔄 New Game
+              </button>
+            </div>
             
-            <div className="space-y-6">
-              {questions.map((question, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      {index + 1}. {question.title}
-                    </h3>
-                    <div className="flex space-x-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
-                        {question.difficulty}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getExerciseTypeColor(question.exercise_type)}`}>
-                        {question.exercise_type}
-                      </span>
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        {question.xp} XP
-                      </span>
-                    </div>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{gameStats.totalXp}</div>
+                <div className="text-sm text-blue-800">Total XP</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{gameStats.correctAnswers}</div>
+                <div className="text-sm text-green-800">Correct</div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">{gameStats.badgesEarned.length}</div>
+                <div className="text-sm text-purple-800">Badges</div>
+              </div>
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">
+                  {currentQuestionIndex + 1}/{gameStats.totalQuestions}
+                </div>
+                <div className="text-sm text-orange-800">Progress</div>
+              </div>
+            </div>
 
-                  <div className="mb-4">
-                    <p className="text-gray-700 mb-2">
-                      <strong>Vulnerability:</strong> {question.vuln_type}
-                    </p>
-                    <p className="text-gray-600 mb-3">
-                      <strong>Explanation:</strong> {question.short_explain}
-                    </p>
-                    <p className="text-gray-800 font-medium">
-                      <strong>Question:</strong> {question.exercise_prompt}
-                    </p>
-                  </div>
-
-                  {question.choices && question.choices.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">Choices:</h4>
-                      <div className="space-y-2">
-                        {question.choices.map((choice, choiceIndex) => (
-                          <div key={choiceIndex} className="flex items-center space-x-2">
-                            <span className="font-medium text-blue-600">{choice.id}.</span>
-                            <span className="text-gray-700">{choice.text}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mb-4">
-                    <h4 className="font-semibold text-gray-900 mb-2">Answer:</h4>
-                    <p className="text-green-700 font-medium">
-                      {question.exercise_type === 'sandbox' 
-                        ? question.answer_key.join('\n') 
-                        : question.answer_key.join(', ')}
-                    </p>
-                  </div>
-
-                  {question.hints && question.hints.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">Hints:</h4>
-                      <ul className="list-disc list-inside space-y-1">
-                        {question.hints.map((hint, hintIndex) => (
-                          <li key={hintIndex} className="text-gray-600">{hint}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <span className="text-sm text-gray-500">
-                      Badge: <span className="font-medium text-purple-600">{question.badge}</span>
-                    </span>
+            {/* Question Navigation */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">📋 Question Navigation:</h3>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {questions.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => goToQuestion(index)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      index === currentQuestionIndex
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={goToPreviousQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Previous
+                </button>
+                
+                <div className="text-center">
+                  <span className="text-sm text-gray-600">
+                    Question {currentQuestionIndex + 1} of {questions.length}
+                  </span>
+                  <div className="text-xs text-gray-500 mt-1">
+                    💡 Use ← → arrow keys to navigate
                   </div>
                 </div>
-              ))}
+                
+                <button
+                  onClick={goToNextQuestion}
+                  disabled={currentQuestionIndex === questions.length - 1}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
             </div>
+
+            {gameStats.badgesEarned.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">🏆 Badges Earned:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {gameStats.badgesEarned.map((badge, index) => (
+                    <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Current Question */}
+        {gameStarted && questions.length > 0 && currentQuestionIndex < questions.length && (
+          <div className="mb-8">
+            <QuestionCard
+              question={questions[currentQuestionIndex]}
+              questionNumber={currentQuestionIndex + 1}
+              onAnswer={handleAnswer}
+              onNext={goToNextQuestion}
+              onPrevious={goToPreviousQuestion}
+            />
+          </div>
+        )}
+
+        {/* Complete All Questions Button */}
+        {gameStarted && currentQuestionIndex < questions.length && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8 text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              🎯 Ready to finish?
+            </h3>
+            <p className="text-gray-600 mb-4">
+              You can continue answering questions or complete the game now.
+            </p>
+            <button
+              onClick={() => setCurrentQuestionIndex(questions.length)}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              ✅ Complete Game
+            </button>
+          </div>
+        )}
+
+        {/* Game Complete */}
+        {gameStarted && currentQuestionIndex >= questions.length && (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Game Complete!
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <div className="text-3xl font-bold text-blue-600 mb-2">{gameStats.totalXp}</div>
+                <div className="text-blue-800 font-medium">Total XP Earned</div>
+              </div>
+              <div className="bg-green-50 p-6 rounded-lg">
+                <div className="text-3xl font-bold text-green-600 mb-2">
+                  {Math.round((gameStats.correctAnswers / gameStats.totalQuestions) * 100)}%
+                </div>
+                <div className="text-green-800 font-medium">Accuracy</div>
+              </div>
+              <div className="bg-purple-50 p-6 rounded-lg">
+                <div className="text-3xl font-bold text-purple-600 mb-2">{gameStats.badgesEarned.length}</div>
+                <div className="text-purple-800 font-medium">Badges Unlocked</div>
+              </div>
+            </div>
+            
+            {gameStats.badgesEarned.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">🏆 Your Badges:</h3>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {gameStats.badgesEarned.map((badge, index) => (
+                    <span key={index} className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full font-medium">
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={resetGame}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              🎮 Play Again
+            </button>
           </div>
         )}
       </div>

@@ -23,5 +23,8 @@ redis==5.0.1
 
 # Performance and concurrency (concurrent.futures is built-in for Python 3.8+)
 
+# ZAP Python API client
+python-owasp-zap-v2.4==0.0.20
+
 # Optional: For future AI integration
 # google-generativeai==0.3.2

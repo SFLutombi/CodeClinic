@@ -8,10 +8,10 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
-import httpx
 import redis
 from dataclasses import dataclass
 from enum import Enum
+from zap_scanner import ZAPScanner
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +144,7 @@ class SimpleParallelScanner:
             
             logger.info(f"Worker {task.worker_id} starting scan for {task.url}")
             
-            # Perform the actual scan
+            # Perform the actual scan using ZAP Python API
             results = self._perform_zap_scan(task.url, task.scan_type, task_id)
             
             # Update task with results
@@ -171,210 +171,23 @@ class SimpleParallelScanner:
                 self.redis_client.hset(f"task:{task_id}", "completed_at", str(time.time()))
     
     def _perform_zap_scan(self, url: str, scan_type: str, task_id: str) -> Dict:
-        """Perform the actual ZAP scan using HTTP API"""
+        """Perform the actual ZAP scan using Python API"""
         try:
-            import httpx
-            import json
+            # Create ZAP scanner instance
+            zap_scanner = ZAPScanner(self.zap_host, self.zap_port)
             
-            # Check if ZAP is accessible first
-            if not self._is_zap_accessible():
-                raise Exception("ZAP is not accessible. Please ensure ZAP is running on the configured host and port.")
+            # Connect to ZAP
+            if not zap_scanner.connect():
+                raise Exception("Failed to connect to ZAP instance")
             
-            results = {
-                "url": url,
-                "scan_type": scan_type,
-                "vulnerabilities": [],
-                "summary": {
-                    "total_issues": 0,
-                    "high_risk": 0,
-                    "medium_risk": 0,
-                    "low_risk": 0,
-                    "info": 0
-                },
-                "scan_duration": 0,
-                "timestamp": time.time()
-            }
+            # Progress callback function
+            def progress_callback(progress, message):
+                logger.info(f"Scan progress: {progress}% - {message}")
+                self.redis_client.hset(f"task:{task_id}", "progress", str(progress))
             
-            # Update progress to 10% - starting scan
-            self.redis_client.hset(f"task:{task_id}", "progress", "10")
+            # Perform the scan
+            results = zap_scanner.scan_url(url, progress_callback=progress_callback)
             
-            # Set target URL in ZAP
-            with httpx.Client(timeout=30) as client:
-                # Set target URL
-                target_response = client.get(
-                    f"{self.zap_base_url}/JSON/core/action/accessUrl/",
-                    params={"url": url}
-                )
-                
-                if target_response.status_code != 200:
-                    raise Exception(f"Failed to set target URL: {target_response.status_code}")
-                
-                # Update progress to 20% - target set
-                self.redis_client.hset(f"task:{task_id}", "progress", "20")
-                
-                # Start spider scan to discover pages
-                spider_response = client.get(
-                    f"{self.zap_base_url}/JSON/spider/action/scan/",
-                    params={
-                        "url": url,
-                        "maxChildren": 50,
-                        "recurse": True
-                    }
-                )
-                
-                if spider_response.status_code != 200:
-                    raise Exception(f"Failed to start spider scan: {spider_response.status_code}")
-                
-                spider_data = spider_response.json()
-                spider_id = spider_data.get("scan")
-                
-                if not spider_id:
-                    raise Exception(f"Invalid spider scan ID: {spider_id}")
-                
-                # Convert to int for comparison
-                try:
-                    spider_id_int = int(spider_id)
-                    if spider_id_int <= 0:
-                        raise Exception(f"Invalid spider scan ID: {spider_id}")
-                except ValueError:
-                    raise Exception(f"Invalid spider scan ID format: {spider_id}")
-                
-                logger.info(f"Started spider scan {spider_id} for {url}")
-                
-                # Update progress to 30% - spider started
-                self.redis_client.hset(f"task:{task_id}", "progress", "30")
-                
-                # Wait for spider to complete with timeout
-                spider_timeout = 60  # 60 seconds timeout
-                spider_start_time = time.time()
-                
-                while time.time() - spider_start_time < spider_timeout:
-                    spider_status = client.get(
-                        f"{self.zap_base_url}/JSON/spider/view/status/",
-                        params={"scanId": spider_id}
-                    )
-                    
-                    if spider_status.status_code == 200:
-                        status_data = spider_status.json()
-                        status = int(status_data.get("status", 0))
-                        logger.info(f"Spider status: {status}% for scan {spider_id}")
-                        
-                        if status >= 100:
-                            break
-                        # Update progress during spider (30-60%)
-                        progress = 30 + int((status / 100) * 30)
-                        self.redis_client.hset(f"task:{task_id}", "progress", str(progress))
-                    else:
-                        logger.warning(f"Failed to get spider status: {spider_status.status_code}")
-                    
-                    time.sleep(2)
-                else:
-                    # Timeout reached
-                    logger.warning(f"Spider scan timed out after {spider_timeout} seconds")
-                    # Stop the spider scan
-                    client.get(f"{self.zap_base_url}/JSON/spider/action/stop/", params={"scanId": spider_id})
-                
-                logger.info(f"Spider scan completed for {url}")
-                
-                # Update progress to 60% - spider completed
-                self.redis_client.hset(f"task:{task_id}", "progress", "60")
-                
-                # Start active scan
-                ascan_response = client.get(
-                    f"{self.zap_base_url}/JSON/ascan/action/scan/",
-                    params={
-                        "url": url,
-                        "recurse": True,
-                        "inScopeOnly": True
-                    }
-                )
-                
-                if ascan_response.status_code != 200:
-                    raise Exception(f"Failed to start active scan: {ascan_response.status_code}")
-                
-                ascan_data = ascan_response.json()
-                ascan_id = ascan_data.get("scan")
-                
-                if not ascan_id:
-                    raise Exception(f"Invalid active scan ID: {ascan_id}")
-                
-                # Convert to int for comparison
-                try:
-                    ascan_id_int = int(ascan_id)
-                    if ascan_id_int <= 0:
-                        raise Exception(f"Invalid active scan ID: {ascan_id}")
-                except ValueError:
-                    raise Exception(f"Invalid active scan ID format: {ascan_id}")
-                
-                logger.info(f"Started active scan {ascan_id} for {url}")
-                
-                # Update progress to 70% - active scan started
-                self.redis_client.hset(f"task:{task_id}", "progress", "70")
-                
-                # Wait for active scan to complete with timeout
-                ascan_timeout = 120  # 120 seconds timeout
-                ascan_start_time = time.time()
-                
-                while time.time() - ascan_start_time < ascan_timeout:
-                    ascan_status = client.get(
-                        f"{self.zap_base_url}/JSON/ascan/view/status/",
-                        params={"scanId": ascan_id}
-                    )
-                    
-                    if ascan_status.status_code == 200:
-                        status_data = ascan_status.json()
-                        status = int(status_data.get("status", 0))
-                        logger.info(f"Active scan status: {status}% for scan {ascan_id}")
-                        
-                        if status >= 100:
-                            break
-                        # Update progress during active scan (70-95%)
-                        progress = 70 + int((status / 100) * 25)
-                        self.redis_client.hset(f"task:{task_id}", "progress", str(progress))
-                    else:
-                        logger.warning(f"Failed to get active scan status: {ascan_status.status_code}")
-                    
-                    time.sleep(3)
-                else:
-                    # Timeout reached
-                    logger.warning(f"Active scan timed out after {ascan_timeout} seconds")
-                    # Stop the active scan
-                    client.get(f"{self.zap_base_url}/JSON/ascan/action/stop/", params={"scanId": ascan_id})
-                
-                logger.info(f"Active scan completed for {url}")
-                
-                # Update progress to 95% - scans completed
-                self.redis_client.hset(f"task:{task_id}", "progress", "95")
-                
-                # Get alerts (vulnerabilities)
-                alerts_response = client.get(
-                    f"{self.zap_base_url}/JSON/core/view/alerts/",
-                    params={"baseurl": url}
-                )
-                
-                if alerts_response.status_code == 200:
-                    alerts = alerts_response.json().get("alerts", [])
-                    vulnerabilities = self._process_zap_alerts(alerts)
-                    results["vulnerabilities"] = vulnerabilities
-                    
-                    # Update summary
-                    for vuln in vulnerabilities:
-                        severity = vuln.get("severity", "low").lower()
-                        if severity == "high":
-                            results["summary"]["high_risk"] += 1
-                        elif severity == "medium":
-                            results["summary"]["medium_risk"] += 1
-                        elif severity == "low":
-                            results["summary"]["low_risk"] += 1
-                        else:
-                            results["summary"]["info"] += 1
-                    
-                    results["summary"]["total_issues"] = len(vulnerabilities)
-                
-                # Update progress to 100% - complete
-                self.redis_client.hset(f"task:{task_id}", "progress", "100")
-            
-            results["scan_duration"] = time.time() - (self.tasks[task_id].started_at or time.time())
             logger.info(f"ZAP scan completed for {url} in {results['scan_duration']:.2f}s with {len(results['vulnerabilities'])} vulnerabilities")
             
             return results
@@ -413,57 +226,6 @@ class SimpleParallelScanner:
             
             return fallback_results
     
-    def _process_zap_alerts(self, alerts: List[Dict]) -> List[Dict]:
-        """Process ZAP alerts into vulnerability format"""
-        vulnerabilities = []
-        
-        for alert in alerts:
-            try:
-                # Map ZAP risk levels to our severity levels
-                risk_mapping = {
-                    "High": "high",
-                    "Medium": "medium", 
-                    "Low": "low",
-                    "Informational": "informational"
-                }
-                
-                # Map ZAP alert names to vulnerability types
-                alert_name = alert.get("name", "").lower()
-                if "xss" in alert_name or "cross-site scripting" in alert_name:
-                    vuln_type = "xss"
-                elif "sql" in alert_name and "injection" in alert_name:
-                    vuln_type = "sql_injection"
-                elif "csrf" in alert_name or "cross-site request forgery" in alert_name:
-                    vuln_type = "csrf"
-                elif "header" in alert_name:
-                    vuln_type = "insecure_headers"
-                elif "ssl" in alert_name or "tls" in alert_name:
-                    vuln_type = "ssl_tls"
-                elif "authentication" in alert_name or "auth" in alert_name:
-                    vuln_type = "authentication"
-                else:
-                    vuln_type = "other"
-                
-                vuln = {
-                    "id": f"vuln_{int(time.time() * 1000)}_{len(vulnerabilities)}",
-                    "type": vuln_type,
-                    "severity": risk_mapping.get(alert.get("risk", "Low"), "low"),
-                    "title": alert.get("name", "Unknown Vulnerability"),
-                    "description": alert.get("description", ""),
-                    "url": alert.get("url", ""),
-                    "parameter": alert.get("param", ""),
-                    "evidence": alert.get("evidence", ""),
-                    "solution": alert.get("solution", ""),
-                    "cwe_id": alert.get("cweid", ""),
-                    "confidence": alert.get("confidence", "medium")
-                }
-                vulnerabilities.append(vuln)
-                
-            except Exception as e:
-                logger.warning(f"Failed to process alert: {str(e)}")
-                continue
-        
-        return vulnerabilities
     
     def get_task_status(self, task_id: str) -> Optional[Dict]:
         """Get the status of a scan task"""

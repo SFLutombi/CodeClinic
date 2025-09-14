@@ -232,6 +232,7 @@ class GameResponse(BaseModel):
     """Response model for generated cybersecurity questions"""
     exercises: List[Dict[str, Any]] = Field(..., description="List of generated questions")
     total_questions: int = Field(..., description="Total number of questions generated")
+    vulnerability_guide: List[Dict[str, Any]] = Field(..., description="Relevant vulnerability explanations for the detected vulnerabilities")
 
 class GeminiIntegration:
     """Handles Gemini AI integration for cybersecurity question generation"""
@@ -279,19 +280,22 @@ class GeminiIntegration:
         prompt = self._build_prompt(sanitized_zap_data, num_questions)
         
         try:
-            logger.info(f"Generating {num_questions} cybersecurity questions from ZAP data")
+            logger.info(f"Generating {num_questions} cybersecurity questions and vulnerability guide from ZAP data")
             response = self.client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=prompt
             )
             
             # Clean and parse the response
-            exercises = self._parse_response(response.text, num_questions)
+            response_data = self._parse_response(response.text, num_questions)
+            exercises = response_data['exercises']
+            vulnerability_guide = response_data['vulnerability_guide']
             
-            logger.info(f"Successfully generated {len(exercises)} questions")
+            logger.info(f"Successfully generated {len(exercises)} questions and {len(vulnerability_guide)} vulnerability guide entries")
             return GameResponse(
                 exercises=exercises,
-                total_questions=len(exercises)
+                total_questions=len(exercises),
+                vulnerability_guide=vulnerability_guide
             )
             
         except Exception as e:
@@ -318,12 +322,12 @@ class GeminiIntegration:
     
     def _build_prompt(self, zap_data: str, num_questions: int) -> str:
         """Build the prompt for Gemini API"""
-        return f"""You are an expert cybersecurity tutor. I will give you ZAP scan results and you need to create {num_questions} different cybersecurity training questions.
+        return f"""You are an expert cybersecurity tutor. I will give you ZAP scan results and you need to create {num_questions} different cybersecurity training questions AND a comprehensive vulnerability guide.
 
 Here is the ZAP scan data:
 {zap_data}
 
-Create exactly {num_questions} questions based on these vulnerabilities. Only generate question types that have deterministic answers.
+TASK 1: Create exactly {num_questions} questions based on these vulnerabilities. Only generate question types that have deterministic answers.
 
 Each question should be a JSON object with these fields:
 - vuln_type: short vulnerability identifier
@@ -338,15 +342,47 @@ Each question should be a JSON object with these fields:
 - xp: points awarded (50-300)
 - badge: achievement badge name
 
+TASK 2: Create a vulnerability guide for each unique vulnerability type found in the ZAP data. Each guide entry should be a JSON object with these fields:
+- name: vulnerability name
+- severity: "Low", "Medium", "High", or "Critical"
+- category: vulnerability category (e.g., "Injection", "Security Headers", "Information Disclosure")
+- description: detailed explanation of the vulnerability
+- howItArises: array of ways this vulnerability can occur
+- exploitationMethods: array of attack techniques
+- realWorldExamples: array of actual attack examples/payloads
+- preventionMethods: array of security measures and fixes
+- codeExamples: object with "vulnerable" and "secure" code examples
+- relatedQuestions: array of question titles that relate to this vulnerability
+- quizAnswers: object containing direct answers to quiz questions about this vulnerability
+
+CRITICAL: The quizAnswers field should contain:
+- keyConcepts: array of 3-5 essential facts that help users understand and piece together the answers to quiz questions
+- preventionMethods: array of 3-5 specific prevention techniques and security measures
+- securityHeaders: array of relevant security headers and their purposes (for header-related vulnerabilities only)
+- attackVectors: array of 2-3 common attack methods and payloads (for understanding what to prevent)
+
+IMPORTANT: Generate guide entries ONLY for vulnerabilities that will have corresponding quiz questions. Ensure 1:1 alignment between guide entries and question vulnerability types.
+
 Constraints:
 - Ensure all answers are deterministic and unambiguous.
 - For mcq and fix_config, only one correct answer.
 - For sandbox, provide exact expected outputs (no subjective answers).
 - Do not generate any free-text or open-ended questions.
+- The vulnerability guide should contain key concepts and building blocks that help users understand and piece together the answers.
+- Include specific prevention methods and security information that provide the knowledge needed to answer questions.
+- Make the guide a study resource where reading it provides the understanding to answer quiz questions.
+- The keyConcepts should contain essential facts that users can combine to find the correct answers.
+- Provide enough information that users can reason through the questions, but don't give direct answers.
 
-Return ONLY a valid JSON array of {num_questions} question objects. No other text."""
+Return a JSON object with this structure:
+{{
+  "exercises": [array of {num_questions} question objects],
+  "vulnerability_guide": [array of vulnerability guide objects]
+}}
+
+Return ONLY this JSON object. No other text."""
     
-    def _parse_response(self, response_text: str, expected_count: int) -> List[Dict[str, Any]]:
+    def _parse_response(self, response_text: str, expected_count: int) -> Dict[str, Any]:
         """Parse and clean the Gemini response"""
         try:
             # Clean the response text
@@ -357,14 +393,24 @@ Return ONLY a valid JSON array of {num_questions} question objects. No other tex
                 json_text = json_text.replace('```', '').strip()
             
             # Parse JSON
-            exercises = json.loads(json_text)
+            response_data = json.loads(json_text)
             
-            # Validate that we got a list
+            # Validate that we got the expected structure
+            if not isinstance(response_data, dict):
+                raise ValueError("Response is not a dictionary")
+            
+            if 'exercises' not in response_data or 'vulnerability_guide' not in response_data:
+                raise ValueError("Response missing 'exercises' or 'vulnerability_guide' fields")
+            
+            exercises = response_data['exercises']
+            vulnerability_guide = response_data['vulnerability_guide']
+            
+            # Validate exercises
             if not isinstance(exercises, list):
-                raise ValueError("Response is not a list")
+                raise ValueError("Exercises is not a list")
             
             # Validate each exercise has required fields
-            required_fields = [
+            required_exercise_fields = [
                 'vuln_type', 'title', 'short_explain', 'exercise_type',
                 'exercise_prompt', 'choices', 'answer_key', 'hints',
                 'difficulty', 'xp', 'badge'
@@ -377,7 +423,7 @@ Return ONLY a valid JSON array of {num_questions} question objects. No other tex
                 if not isinstance(exercise, dict):
                     raise ValueError(f"Exercise {i} is not a dictionary")
                 
-                for field in required_fields:
+                for field in required_exercise_fields:
                     if field not in exercise:
                         raise ValueError(f"Exercise {i} missing required field: {field}")
                 
@@ -387,16 +433,36 @@ Return ONLY a valid JSON array of {num_questions} question objects. No other tex
                 
                 # Validate answer_key has only one answer for mcq and fix_config
                 if exercise['exercise_type'] in ['mcq', 'fix_config']:
-                    if len(exercise['answer_key']) != 1:
-                        raise ValueError(f"Exercise {i} ({exercise['exercise_type']}) must have exactly one answer")
+                    if not isinstance(exercise['answer_key'], list) or len(exercise['answer_key']) != 1:
+                        raise ValueError(f"Exercise {i} ({exercise['exercise_type']}) must have exactly one answer in answer_key array")
             
-            return exercises
+            # Validate vulnerability guide
+            if not isinstance(vulnerability_guide, list):
+                raise ValueError("Vulnerability guide is not a list")
+            
+            required_guide_fields = [
+                'name', 'severity', 'category', 'description',
+                'howItArises', 'exploitationMethods', 'realWorldExamples',
+                'preventionMethods', 'codeExamples', 'relatedQuestions', 'quizAnswers'
+            ]
+            
+            for i, guide_entry in enumerate(vulnerability_guide):
+                if not isinstance(guide_entry, dict):
+                    raise ValueError(f"Guide entry {i} is not a dictionary")
+                
+                for field in required_guide_fields:
+                    if field not in guide_entry:
+                        raise ValueError(f"Guide entry {i} missing required field: {field}")
+            
+            return response_data
             
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {str(e)}")
+            logger.error(f"Response text (first 500 chars): {response_text[:500]}")
             raise Exception(f"Invalid JSON response from Gemini: {str(e)}")
         except Exception as e:
             logger.error(f"Failed to parse response: {str(e)}")
+            logger.error(f"Response text (first 500 chars): {response_text[:500]}")
             raise Exception(f"Failed to parse response: {str(e)}")
     
 

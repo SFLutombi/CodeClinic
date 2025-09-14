@@ -1,0 +1,53 @@
+nohup: ignoring input
+INFO:     Will watch for changes in these directories: ['/home/eino/Documents/repos/CodeClinic/src/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [155357] using WatchFiles
+🏥 Starting CodeClinic Backend Server...
+📡 API Documentation: http://localhost:8000/docs
+🔍 Health Check: http://localhost:8000/health
+🛑 Press Ctrl+C to stop the server
+--------------------------------------------------
+INFO:supabase_client:Supabase client initialized successfully
+INFO:main:Supabase client loaded successfully
+INFO:     Started server process [155365]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:httpx:HTTP Request: GET https://ttnntygxeavcfdnumvpt.supabase.co/rest/v1/quiz_attempts?select=user_id&id=eq.96e132be-6773-487b-aa97-443299b4ac70 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: POST https://ttnntygxeavcfdnumvpt.supabase.co/rest/v1/question_responses "HTTP/2 201 Created"
+INFO:supabase_client:Saved question response: 2132de39-cc95-4c2a-a3b6-566bcae7e387
+INFO:     127.0.0.1:50996 - "POST /save-question-response HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET https://ttnntygxeavcfdnumvpt.supabase.co/rest/v1/users?select=id%2Cusername%2Cfull_name%2Cemail%2Cavatar_url%2Cquestion_responses%21question_responses_user_id_fkey%28xp_earned%2Cis_correct%29 "HTTP/2 200 OK"
+INFO:     127.0.0.1:44140 - "GET /leaderboard HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET https://ttnntygxeavcfdnumvpt.supabase.co/rest/v1/quiz_attempts?select=user_id&id=eq.96e132be-6773-487b-aa97-443299b4ac70 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: POST https://ttnntygxeavcfdnumvpt.supabase.co/rest/v1/question_responses "HTTP/2 201 Created"
+INFO:supabase_client:Saved question response: 2ef53611-f103-48bd-beab-00bc34c122ae
+INFO:     127.0.0.1:43964 - "POST /save-question-response HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET https://ttnntygxeavcfdnumvpt.supabase.co/rest/v1/users?select=id%2Cusername%2Cfull_name%2Cemail%2Cavatar_url%2Cquestion_responses%21question_responses_user_id_fkey%28xp_earned%2Cis_correct%29 "HTTP/2 200 OK"
+INFO:     127.0.0.1:50094 - "GET /leaderboard HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'supabase_client.py', 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [155365]
+INFO:supabase_client:Supabase client initialized successfully
+INFO:main:Supabase client loaded successfully
+INFO:     Started server process [155668]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [155668]
+INFO:supabase_client:Supabase client initialized successfully
+INFO:main:Supabase client loaded successfully
+INFO:     Started server process [155686]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:zap_integration:ZAP not available: All connection attempts failed
+INFO:     127.0.0.1:36918 - "GET /health HTTP/1.1" 200 OK
+INFO:supabase_client:Looking for existing user with Clerk ID: test_user_123
+INFO:httpx:HTTP Request: GET https://ttnntygxeavcfdnumvpt.supabase.co/rest/v1/users?select=id&clerk_user_id=eq.test_user_123 "HTTP/2 200 OK"
+INFO:supabase_client:Found existing user with ID: 5f2e785c-e834-4389-95da-ca370abdb3ed
+INFO:httpx:HTTP Request: POST https://ttnntygxeavcfdnumvpt.supabase.co/rest/v1/quiz_attempts "HTTP/2 201 Created"
+INFO:     127.0.0.1:40802 - "POST /create-quiz-attempt HTTP/1.1" 200 OK

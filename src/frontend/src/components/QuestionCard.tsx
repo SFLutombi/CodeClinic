@@ -34,6 +34,17 @@ export default function QuestionCard({ question, questionNumber, onAnswer, onNex
   const [hintsRevealed, setHintsRevealed] = useState(0);
   const [startTime] = useState(Date.now());
   const [timeTaken, setTimeTaken] = useState(0);
+  // Reset state when question changes (questionNumber is the key)
+  useEffect(() => {
+    setSelectedAnswer('');
+    setCustomAnswer('');
+    setIsSubmitted(false);
+    setIsCorrect(null);
+    setXpEarned(0);
+    setShowHints(false);
+    setHintsRevealed(0);
+    setTimeTaken(0);
+  }, [questionNumber]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -92,7 +103,10 @@ export default function QuestionCard({ question, questionNumber, onAnswer, onNex
     }
 
     // Check if answer matches (case-insensitive for sandbox)
-    if (question.exercise_type === 'sandbox') {
+    // If no answer provided, it's automatically incorrect
+    if (answerToCheck.length === 0) {
+      correct = false;
+    } else if (question.exercise_type === 'sandbox') {
       correct = question.answer_key.some(key => 
         key.toLowerCase().trim() === answerToCheck.toLowerCase()
       );
@@ -103,12 +117,12 @@ export default function QuestionCard({ question, questionNumber, onAnswer, onNex
     setIsCorrect(correct);
     setIsSubmitted(true);
 
-    // Calculate XP with speed bonus
-    let baseXp = question.xp;
+    // Calculate XP - only give XP for correct answers
+    let baseXp = correct ? question.xp : 0;
     let speedBonus = 0;
     
-    if (timeElapsed <= 30) {
-      speedBonus = Math.floor(baseXp * 0.2); // 20% bonus for quick answers
+    if (correct && timeElapsed <= 30) {
+      speedBonus = Math.floor(baseXp * 0.2); // 20% bonus for quick correct answers
     }
     
     const totalXp = baseXp + speedBonus;
@@ -127,11 +141,8 @@ export default function QuestionCard({ question, questionNumber, onAnswer, onNex
   };
 
   const canSubmit = () => {
-    if (question.exercise_type === 'sandbox') {
-      return customAnswer.trim().length > 0;
-    } else {
-      return selectedAnswer.length > 0;
-    }
+    // Simple logic: can submit as long as not already submitted
+    return !isSubmitted;
   };
 
   const getCardBorderColor = () => {
@@ -274,9 +285,9 @@ export default function QuestionCard({ question, questionNumber, onAnswer, onNex
       <div className="mb-4">
         <button
           onClick={handleSubmit}
-          disabled={!canSubmit() || isSubmitted}
+          disabled={isSubmitted}
           className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-            canSubmit() && !isSubmitted
+            !isSubmitted
               ? 'bg-blue-600 text-white hover:bg-blue-700'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}

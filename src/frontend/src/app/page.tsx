@@ -91,6 +91,18 @@ export default function Home() {
               >
                 🧠 AI Questions
               </a>
+              <a
+                href="/explore"
+                className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              >
+                🔍 Explore
+              </a>
+              <a
+                href="/leaderboard"
+                className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              >
+                🏆 Leaderboard
+              </a>
               <div className="text-sm text-gray-500">
                 Powered by OWASP ZAP
               </div>

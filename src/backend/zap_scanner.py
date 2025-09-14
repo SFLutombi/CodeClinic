@@ -115,8 +115,13 @@ class ZAPScanner:
             logger.info(f"Starting active scan for {url}")
             ascan_id = self.zap.ascan.scan(url, recurse=True, inscopeonly=True)
             
-            if not ascan_id or ascan_id == 0:
-                raise Exception("Failed to start active scan - invalid scan ID")
+            # Check if scan ID is valid (should be numeric)
+            try:
+                scan_id_int = int(ascan_id)
+                if scan_id_int <= 0:
+                    raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}")
+            except (ValueError, TypeError):
+                raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}")
             
             logger.info(f"Active scan started with ID: {ascan_id}")
             
@@ -167,8 +172,17 @@ class ZAPScanner:
         except Exception as e:
             logger.error(f"Scan failed for {url}: {e}")
             
+            # Provide more specific error messages
+            error_message = str(e)
+            if "url_not_found" in error_message or "does_not_exist" in error_message:
+                error_message = "Target URL is not accessible or does not exist"
+            elif "connection" in error_message.lower():
+                error_message = "Unable to connect to the target URL"
+            elif "timeout" in error_message.lower():
+                error_message = "Request timed out - the target may be slow or unreachable"
+            
             # Return error result
-            results["error"] = str(e)
+            results["error"] = error_message
             results["scan_duration"] = time.time() - start_time
             
             # Add a fallback vulnerability entry for the error
@@ -177,11 +191,11 @@ class ZAPScanner:
                 "type": "scan_error",
                 "severity": "informational",
                 "title": "Scan Error",
-                "description": f"ZAP scan failed: {str(e)}",
+                "description": f"Security scan could not complete: {error_message}",
                 "url": url,
                 "parameter": None,
                 "evidence": "Scan could not complete",
-                "solution": "Check if the target URL is accessible and ZAP is running properly",
+                "solution": "Please check if the target URL is accessible and try again",
                 "cwe_id": None,
                 "confidence": "low"
             }]
@@ -395,8 +409,13 @@ class ZAPScanner:
             logger.info(f"Starting active scan for {len(selected_pages)} selected pages")
             ascan_id = self.zap.ascan.scan(base_url, recurse=True, inscopeonly=True)
             
-            if not ascan_id or ascan_id == 0:
-                raise Exception("Failed to start active scan - invalid scan ID")
+            # Check if scan ID is valid (should be numeric)
+            try:
+                scan_id_int = int(ascan_id)
+                if scan_id_int <= 0:
+                    raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}")
+            except (ValueError, TypeError):
+                raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}")
             
             logger.info(f"Active scan started with ID: {ascan_id}")
             

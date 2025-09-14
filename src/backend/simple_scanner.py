@@ -489,12 +489,45 @@ class SimpleParallelScanner:
             "status": task.status.value,
             "worker_id": task.worker_id,
             "progress": task.progress,
+            "message": self._get_progress_message(task),
             "created_at": task.created_at,
             "started_at": task.started_at,
             "completed_at": task.completed_at,
             "error": task.error,
             "results": task.results
         }
+    
+    def _get_progress_message(self, task: ScanTask) -> str:
+        """Generate user-friendly progress message based on task status and progress"""
+        if task.status == ScanStatus.PENDING:
+            return "Queued for processing..."
+        elif task.status == ScanStatus.RUNNING:
+            if task.scan_type == "crawl":
+                if task.progress < 20:
+                    return "Setting up crawl..."
+                elif task.progress < 50:
+                    return "Discovering pages..."
+                elif task.progress < 90:
+                    return "Processing discovered pages..."
+                else:
+                    return "Finalizing crawl results..."
+            else:  # scan
+                if task.progress < 20:
+                    return "Setting up security scan..."
+                elif task.progress < 50:
+                    return "Running spider scan..."
+                elif task.progress < 80:
+                    return "Running active security tests..."
+                elif task.progress < 95:
+                    return "Analyzing vulnerabilities..."
+                else:
+                    return "Generating security report..."
+        elif task.status == ScanStatus.COMPLETED:
+            return "Scan completed successfully!"
+        elif task.status == ScanStatus.FAILED:
+            return f"Scan failed: {task.error or 'Unknown error'}"
+        else:
+            return "Processing..."
     
     def get_all_tasks(self) -> List[Dict]:
         """Get all scan tasks"""

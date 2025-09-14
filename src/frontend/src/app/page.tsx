@@ -83,15 +83,15 @@ export default function Home() {
     try {
       setWorkflowStep('scanning');
       
-      // Start scan for all pages
-      const response = await fetch('http://localhost:8000/scan/start', {
+      // Start scan for all discovered pages
+      const response = await fetch('http://localhost:8000/scan/start-selected', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: discoveredPages[0]?.url || '',
-          scan_type: 'full_site'
+          scan_id: crawlId,
+          selected_pages: discoveredPages.map(page => page.url)
         }),
       });
 
@@ -243,13 +243,29 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-red-900 mb-2">Process Failed</h3>
-              <p className="text-red-700">There was an error during the process. Please try again.</p>
-              <button
-                onClick={() => setWorkflowStep('input')}
-                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Try Again
-              </button>
+              <p className="text-red-700 mb-4">
+                There was an error during the security assessment process. This could be due to:
+              </p>
+              <ul className="text-sm text-red-600 text-left mb-4">
+                <li>• The target website is not accessible</li>
+                <li>• Network connectivity issues</li>
+                <li>• The website is blocking security scanners</li>
+                <li>• Temporary server issues</li>
+              </ul>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setWorkflowStep('input')}
+                  className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Try Again
+                </button>
+                <button
+                  onClick={() => setWorkflowStep('input')}
+                  className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Start Over
+                </button>
+              </div>
             </div>
           </div>
         )}

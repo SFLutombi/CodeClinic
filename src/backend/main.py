@@ -11,7 +11,6 @@ from typing import List, Optional
 import logging
 
 from models import ScanRequest, ScanResponse, CrawlRequest, PageSelectionRequest
-from url_validator import URLValidator
 from simple_scanner import SimpleParallelScanner
 
 # Configure logging
@@ -35,9 +34,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize services
-url_validator = URLValidator()
 
 # Initialize simplified parallel scanning system
 scanner = SimpleParallelScanner(max_workers=4)
@@ -71,10 +67,6 @@ async def start_scan(request: ScanRequest):
     try:
         # Convert Pydantic URL to string
         url_str = str(request.url)
-        
-        # Basic URL format validation only
-        if not url_validator.is_valid_url(url_str):
-            raise HTTPException(status_code=400, detail="Invalid URL format")
         
         logger.info(f"Starting scan for URL: {url_str}")
         
@@ -142,10 +134,6 @@ async def start_crawl(request: CrawlRequest):
     try:
         # Convert Pydantic URL to string
         url_str = str(request.url)
-        
-        # Basic URL format validation only
-        if not url_validator.is_valid_url(url_str):
-            raise HTTPException(status_code=400, detail="Invalid URL format")
         
         logger.info(f"Starting crawl for URL: {url_str}")
         

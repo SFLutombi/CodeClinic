@@ -3,7 +3,6 @@ URL Validation Module
 Handles URL validation and accessibility checking
 """
 
-import asyncio
 import httpx
 from urllib.parse import urlparse
 import logging
@@ -80,77 +79,3 @@ class URLValidator:
             logger.error(f"Error checking URL accessibility: {str(e)}")
             return False
     
-    def normalize_url(self, url: str) -> str:
-        """
-        Normalize URL for consistent processing
-        
-        Args:
-            url: URL to normalize
-            
-        Returns:
-            Normalized URL
-        """
-        try:
-            parsed = urlparse(url)
-            
-            # Ensure scheme is lowercase
-            scheme = parsed.scheme.lower()
-            
-            # Ensure netloc is lowercase
-            netloc = parsed.netloc.lower()
-            
-            # Remove trailing slash from path (except root)
-            path = parsed.path
-            if path.endswith('/') and path != '/':
-                path = path.rstrip('/')
-            
-            # Reconstruct URL
-            normalized = f"{scheme}://{netloc}{path}"
-            
-            # Add query and fragment if they exist
-            if parsed.query:
-                normalized += f"?{parsed.query}"
-            if parsed.fragment:
-                normalized += f"#{parsed.fragment}"
-            
-            return normalized
-            
-        except Exception as e:
-            logger.error(f"URL normalization error: {str(e)}")
-            return url
-    
-    def get_domain(self, url: str) -> str:
-        """
-        Extract domain from URL
-        
-        Args:
-            url: URL to extract domain from
-            
-        Returns:
-            Domain name or empty string if invalid
-        """
-        try:
-            parsed = urlparse(url)
-            return parsed.netloc.lower()
-        except Exception as e:
-            logger.error(f"Domain extraction error: {str(e)}")
-            return ""
-    
-    def is_same_domain(self, url1: str, url2: str) -> bool:
-        """
-        Check if two URLs are from the same domain
-        
-        Args:
-            url1: First URL
-            url2: Second URL
-            
-        Returns:
-            True if same domain, False otherwise
-        """
-        try:
-            domain1 = self.get_domain(url1)
-            domain2 = self.get_domain(url2)
-            return domain1 == domain2 and domain1 != ""
-        except Exception as e:
-            logger.error(f"Domain comparison error: {str(e)}")
-            return False

@@ -17,66 +17,12 @@ services:
       timeout: 5s
       retries: 5
 
-  # ZAP Worker 1
-  zap-worker-1:
-    image: owasp/zap2docker-stable
-    container_name: codeclinic-zap-1
+  # Single ZAP instance for simplified parallel scanning
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: codeclinic-zap
     ports:
       - "8080:8080"
-    environment:
-      - ZAP_PORT=8080
-    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/JSON/core/view/version/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    depends_on:
-      - redis
-
-  # ZAP Worker 2
-  zap-worker-2:
-    image: owasp/zap2docker-stable
-    container_name: codeclinic-zap-2
-    ports:
-      - "8081:8080"
-    environment:
-      - ZAP_PORT=8080
-    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/JSON/core/view/version/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    depends_on:
-      - redis
-
-  # ZAP Worker 3
-  zap-worker-3:
-    image: owasp/zap2docker-stable
-    container_name: codeclinic-zap-3
-    ports:
-      - "8082:8080"
-    environment:
-      - ZAP_PORT=8080
-    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/JSON/core/view/version/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    depends_on:
-      - redis
-
-  # ZAP Worker 4
-  zap-worker-4:
-    image: owasp/zap2docker-stable
-    container_name: codeclinic-zap-4
-    ports:
-      - "8083:8080"
     environment:
       - ZAP_PORT=8080
     command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
@@ -99,20 +45,14 @@ services:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379
-      - ZAP_WORKERS=4
-      - ZAP_PORTS=8080,8081,8082,8083
+      - ZAP_HOST=zap
+      - ZAP_PORT=8080
     volumes:
       - ./src/backend:/app
     depends_on:
       redis:
         condition: service_healthy
-      zap-worker-1:
-        condition: service_healthy
-      zap-worker-2:
-        condition: service_healthy
-      zap-worker-3:
-        condition: service_healthy
-      zap-worker-4:
+      zap:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:

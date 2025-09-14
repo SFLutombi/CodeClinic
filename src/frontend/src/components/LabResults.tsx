@@ -4,17 +4,20 @@ import { useState } from 'react';
 import { Vulnerability, SeverityLevel } from '@/types/scan';
 
 interface LabResultsProps {
-  vulnerabilities: Vulnerability[];
+  vulnerabilities?: Vulnerability[];
 }
 
 export default function LabResults({ vulnerabilities }: LabResultsProps) {
   const [expandedVuln, setExpandedVuln] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<SeverityLevel | 'all'>('all');
 
+  // Ensure vulnerabilities is an array
+  const vulns = vulnerabilities || [];
+
   // Filter vulnerabilities by severity
   const filteredVulns = filterSeverity === 'all' 
-    ? vulnerabilities 
-    : vulnerabilities.filter(v => v.severity === filterSeverity);
+    ? vulns 
+    : vulns.filter(v => v.severity === filterSeverity);
 
   // Get severity styling
   const getSeverityStyles = (severity: SeverityLevel) => {

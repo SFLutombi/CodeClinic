@@ -115,8 +115,8 @@ export default function Home() {
 
         {scanStatus === 'completed' && scanData && (
           <div className="space-y-8">
-            <VitalsDashboard vulnerabilities={scanData.vulnerabilities} />
-            <LabResults vulnerabilities={scanData.vulnerabilities} />
+            <VitalsDashboard vulnerabilities={scanData.vulnerabilities || []} />
+            <LabResults vulnerabilities={scanData.vulnerabilities || []} />
           </div>
         )}
 

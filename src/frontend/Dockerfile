@@ -12,8 +12,8 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application (without turbopack to avoid build issues)
+RUN npm run build -- --no-turbo
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs

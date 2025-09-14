@@ -3,16 +3,19 @@
 import { Vulnerability, SeverityLevel } from '@/types/scan';
 
 interface VitalsDashboardProps {
-  vulnerabilities: Vulnerability[];
+  vulnerabilities?: Vulnerability[];
 }
 
 export default function VitalsDashboard({ vulnerabilities }: VitalsDashboardProps) {
+  // Ensure vulnerabilities is an array
+  const vulns = vulnerabilities || [];
+  
   // Calculate health metrics
-  const totalVulns = vulnerabilities.length;
-  const highSeverity = vulnerabilities.filter(v => v.severity === 'high').length;
-  const mediumSeverity = vulnerabilities.filter(v => v.severity === 'medium').length;
-  const lowSeverity = vulnerabilities.filter(v => v.severity === 'low').length;
-  const infoSeverity = vulnerabilities.filter(v => v.severity === 'informational').length;
+  const totalVulns = vulns.length;
+  const highSeverity = vulns.filter(v => v.severity === 'high').length;
+  const mediumSeverity = vulns.filter(v => v.severity === 'medium').length;
+  const lowSeverity = vulns.filter(v => v.severity === 'low').length;
+  const infoSeverity = vulns.filter(v => v.severity === 'informational').length;
 
   // Calculate overall health score (0-100)
   const healthScore = Math.max(0, 100 - (highSeverity * 20) - (mediumSeverity * 10) - (lowSeverity * 5) - (infoSeverity * 1));
@@ -195,13 +198,13 @@ export default function VitalsDashboard({ vulnerabilities }: VitalsDashboardProp
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-gray-900">
-              {vulnerabilities.filter(v => v.type === 'xss').length}
+              {vulns.filter(v => v.type === 'xss').length}
             </div>
             <div className="text-sm text-gray-500">XSS Vulnerabilities</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-gray-900">
-              {vulnerabilities.filter(v => v.type === 'insecure_headers').length}
+              {vulns.filter(v => v.type === 'insecure_headers').length}
             </div>
             <div className="text-sm text-gray-500">Header Issues</div>
           </div>

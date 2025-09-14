@@ -4,7 +4,7 @@
 
 # Setup Instructions
 
-Follow the steps below to set up and run CodeClinic - your security health assessment tool.
+Follow the steps below to set up and run CodeClinic - your security health assessment tool with simplified parallel scanning.
 
 ---
 
@@ -13,17 +13,16 @@ Follow the steps below to set up and run CodeClinic - your security health asses
 ### Backend Requirements
 - **Python 3.8+** (recommended: Python 3.10+)
 - **pip** (Python package manager)
-- **OWASP ZAP** (for security scanning)
-  - Download from: https://www.zaproxy.org/download/
-  - Or install via Docker: `docker run -d -p 8080:8080 owasp/zap2docker-stable`
+- **Redis** (for task coordination and caching)
 
 ### Frontend Requirements
 - **Node.js 18+** (recommended: Node.js 20+)
 - **npm** (comes with Node.js)
 
-### Optional
-- **Docker** (for containerized deployment)
-- **Docker Compose** (for multi-container setup)
+### Infrastructure Requirements
+- **Docker** (for ZAP and Redis containers)
+- **Docker Compose** (recommended for easy setup)
+- **OWASP ZAP** (automatically started via Docker)
 
 ---
 
@@ -62,85 +61,96 @@ cd src/frontend
 npm install
 ```
 
-### 4. ZAP Setup (Required for Security Scanning)
+### 4. Infrastructure Setup
 
-#### Option A: Docker (Recommended)
+#### Option A: Docker Compose (Recommended)
 ```bash
-# Run ZAP in Docker
-docker run -d -p 8080:8080 --name zap owasp/zap2docker-stable
+# Start all services with one command
+docker-compose up -d
+
+# This starts:
+# - Redis (port 6379)
+# - ZAP (port 8080)
+# - Backend API (port 8000)
+# - Frontend (port 3000)
 ```
 
-#### Option B: Local Installation
-1. Download ZAP from https://www.zaproxy.org/download/
-2. Extract and run ZAP
-3. Ensure ZAP is running on `localhost:8080`
+#### Option B: Manual Docker Setup
+```bash
+# Start Redis
+docker run -d -p 6379:6379 --name redis redis:7-alpine
+
+# Start ZAP
+docker run -d -p 8080:8080 --name zap ghcr.io/zaproxy/zaproxy:stable zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
+```
 
 ---
 
 ## ▶️ Running the Project
 
-### 1. Start ZAP (if not using Docker)
-Make sure OWASP ZAP is running on `localhost:8080`
-
-### 2. Start the Backend Server
+### Option 1: Docker Compose (Recommended)
 ```bash
-# From src/backend directory
-python3 run.py
-# OR
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# Start all services
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
 ```
 
-The backend API will be available at:
-- **API Base**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
-
-### 3. Start the Frontend Application
+### Option 2: Manual Setup
 ```bash
-# From src/frontend directory
+# 1. Start infrastructure (if not using Docker Compose)
+docker run -d -p 6379:6379 --name redis redis:7-alpine
+docker run -d -p 8080:8080 --name zap ghcr.io/zaproxy/zaproxy:stable zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
+
+# 2. Start Backend
+cd src/backend
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3 run.py
+
+# 3. Start Frontend (in another terminal)
+cd src/frontend
 npm run dev
 ```
 
-The frontend will be available at:
-- **Application**: http://localhost:3000
+### Access Points
+- **Frontend Application**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/health
+- **ZAP Interface**: http://localhost:8080
 
-### 4. Using the Application
+### Using the Application
 1. Open http://localhost:3000 in your browser
 2. Enter a website URL to scan
 3. Choose scan type (Full Site or Selective Pages)
-4. Wait for the scan to complete
-5. Review the security health report
+4. Wait for the scan to complete (real ZAP scanning)
+5. Review the security health report with actual vulnerabilities
 
 ---
 
-## 🐳 Docker Setup (Alternative)
+## 🐳 Docker Architecture
 
-### Using Docker Compose
-```bash
-# From project root
-docker-compose up -d
+### Simplified Container Setup
+The new architecture uses a simplified approach:
+
+```yaml
+services:
+  redis:     # Task coordination and caching
+  zap:       # Single ZAP instance (replaces 4 workers)
+  backend:   # FastAPI application
+  frontend:  # Next.js application
 ```
 
-This will start:
-- ZAP scanner on port 8080
-- Backend API on port 8000
-- Frontend on port 3000
-
-### Manual Docker Setup
-```bash
-# Start ZAP
-docker run -d -p 8080:8080 --name zap owasp/zap2docker-stable
-
-# Build and run backend
-cd src/backend
-docker build -t codeclinic-backend .
-docker run -d -p 8000:8000 --name codeclinic-backend codeclinic-backend
-
-# Build and run frontend
-cd src/frontend
-docker build -t codeclinic-frontend .
-docker run -d -p 3000:3000 --name codeclinic-frontend codeclinic-frontend
-```
+### Benefits of New Architecture
+- **Simpler Setup**: One ZAP container instead of four
+- **Better Performance**: Thread-based parallelism
+- **Lower Resource Usage**: Reduced memory and CPU requirements
+- **Easier Debugging**: Fewer moving parts
+- **Real Scanning**: Actual ZAP API integration, no mock data
 
 ---
 
@@ -149,33 +159,42 @@ docker run -d -p 3000:3000 --name codeclinic-frontend codeclinic-frontend
 ### Common Issues
 
 1. **ZAP Connection Error**
-   - Ensure ZAP is running on port 8080
-   - Check firewall settings
-   - Verify ZAP API is accessible
+   - Ensure ZAP container is running: `docker ps | grep zap`
+   - Check ZAP is accessible: `curl http://localhost:8080/JSON/core/view/version/`
+   - Restart ZAP container: `docker restart codeclinic-zap`
 
-2. **Backend Import Errors**
+2. **Redis Connection Error**
+   - Ensure Redis container is running: `docker ps | grep redis`
+   - Check Redis connectivity: `docker exec codeclinic-redis redis-cli ping`
+   - Restart Redis container: `docker restart codeclinic-redis`
+
+3. **Backend Import Errors**
    - Ensure virtual environment is activated
    - Reinstall requirements: `pip install -r requirements.txt`
+   - Check Python version: `python3 --version`
 
-3. **Frontend Build Errors**
+4. **Frontend Build Errors**
    - Clear node_modules: `rm -rf node_modules && npm install`
    - Check Node.js version: `node --version`
+   - Update dependencies: `npm update`
 
-4. **CORS Issues**
-   - Ensure backend is running on port 8000
-   - Check frontend is running on port 3000
-   - Verify CORS settings in backend
+5. **Docker Compose Issues**
+   - Check all services: `docker-compose ps`
+   - View logs: `docker-compose logs [service-name]`
+   - Restart all services: `docker-compose restart`
 
 ### Getting Help
 - Check the API documentation at http://localhost:8000/docs
-- Review the logs in the terminal
+- Review container logs: `docker-compose logs -f`
 - Ensure all services are running on correct ports
+- Check health endpoints: http://localhost:8000/health
 
 ---
 
 ## 📝 Development Notes
 
-- Backend uses FastAPI with automatic API documentation
-- Frontend uses Next.js with TypeScript and Tailwind CSS
-- ZAP integration includes fallback mock data for demo purposes
-- All components are designed with a medical clinic theme
+- **Backend**: FastAPI with automatic API documentation and real ZAP integration
+- **Frontend**: Next.js with TypeScript and Tailwind CSS
+- **Scanning**: Real OWASP ZAP API integration with thread-based parallelism
+- **Architecture**: Simplified single-ZAP instance with Redis coordination
+- **Theme**: Medical clinic-inspired UI for security assessment

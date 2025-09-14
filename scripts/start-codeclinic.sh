@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # CodeClinic Startup Script
-# High-performance parallel scanning system with multiple ZAP workers
+# Simplified parallel scanning system with single ZAP instance and thread-based workers
 
 echo "🏥 Starting CodeClinic - Security Health Assessment Tool"
 echo "========================================================"
@@ -74,6 +74,29 @@ check_docker_permissions() {
     fi
 }
 
+# Check Docker resources
+check_docker_resources() {
+    print_status "Checking Docker resource allocation..."
+    
+    # Check available memory
+    total_mem=$(free -m | awk 'NR==2{printf "%.0f", $2}')
+    available_mem=$(free -m | awk 'NR==2{printf "%.0f", $7}')
+    
+    print_status "System memory: ${total_mem}MB total, ${available_mem}MB available"
+    
+    if [ "$available_mem" -lt 2048 ]; then
+        print_warning "Low available memory (${available_mem}MB). ZAP requires at least 2GB RAM"
+        print_status "Consider closing other applications or increasing system RAM"
+    else
+        print_success "Sufficient memory available for ZAP"
+    fi
+    
+    # Check Docker stats if available
+    if docker stats --no-stream --format "table {{.MemUsage}}" codeclinic-zap 2>/dev/null | grep -q "MB\|GB"; then
+        print_status "ZAP memory usage: $(docker stats --no-stream --format "{{.MemUsage}}" codeclinic-zap 2>/dev/null || echo "Unknown")"
+    fi
+}
+
 # Check if Docker Compose is installed
 check_docker_compose() {
     print_status "Checking Docker Compose installation..."
@@ -109,43 +132,74 @@ check_redis() {
     fi
 }
 
-# Start ZAP workers
-start_zap_workers() {
-    print_status "Starting ZAP worker instances..."
+start_zap() {
+    print_status "Starting ZAP instance..."
     
-    # Number of workers (default: 4)
-    WORKERS=${1:-4}
-    
-    # Download ZAP image first
     print_status "Downloading ZAP image (this may take a moment)..."
-    docker pull owasp/zap2docker-stable --quiet
+    docker pull ghcr.io/zaproxy/zaproxy:stable > /dev/null 2>&1
     
-    for i in $(seq 1 $WORKERS); do
-        PORT=$((8080 + i - 1))
-        print_status "Starting ZAP worker $i on port $PORT..."
+    docker stop codeclinic-zap 2>/dev/null
+    docker rm codeclinic-zap 2>/dev/null
+    
+    print_status "Starting ZAP on port 8080..."
+    docker run -d \
+        --name codeclinic-zap \
+        -p 8080:8080 \
+        ghcr.io/zaproxy/zaproxy:stable \
+        zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
+    
+    print_status "Waiting for ZAP to be ready..."
+    print_warning "ZAP is a heavyweight security scanner that can take 2-5 minutes to initialize on first startup"
+    print_status "Please be patient - this is normal behavior"
+    
+    ready=false
+    total_attempts=150  # 150 attempts × 2 seconds = 5 minutes
+    for j in {1..150}; do
+        # Show progress every 30 seconds (15 attempts)
+        if [ $((j % 15)) -eq 0 ]; then
+            elapsed=$((j * 2))
+            print_status "Still waiting for ZAP... (${elapsed}s elapsed)"
+        fi
         
-        # Stop existing container if running
-        docker stop codeclinic-zap-$i 2>/dev/null
-        docker rm codeclinic-zap-$i 2>/dev/null
+        # Test multiple ZAP endpoints to ensure it's fully ready
+        if curl -s http://localhost:8080/JSON/core/view/version/ > /dev/null 2>&1 && \
+           curl -s http://localhost:8080/JSON/core/view/status/ > /dev/null 2>&1; then
+            print_success "ZAP is ready after $((j * 2)) seconds"
+            ready=true
+            break
+        fi
         
-        # Start new ZAP instance
-        docker run -d \
-            --name codeclinic-zap-$i \
-            -p $PORT:8080 \
-            owasp/zap2docker-stable \
-            zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
+        # Also check if container is still running
+        if ! docker ps | grep -q codeclinic-zap; then
+            print_error "ZAP container stopped unexpectedly"
+            print_status "Checking ZAP logs..."
+            docker logs codeclinic-zap 2>/dev/null || print_warning "Could not retrieve ZAP logs"
+            exit 1
+        fi
         
-        # Wait for ZAP to be ready
-        print_status "Waiting for ZAP worker $i to be ready..."
-        for j in {1..30}; do
-            if curl -s http://localhost:$PORT/JSON/core/view/version/ > /dev/null 2>&1; then
-                print_success "ZAP worker $i is ready"
-                break
-            fi
-            sleep 2
-        done
+        sleep 2
     done
+
+    if [ "$ready" = false ]; then
+        print_error "ZAP did not become ready after 5 minutes"
+        print_status "This might be due to:"
+        echo "  - Insufficient system resources (RAM/CPU)"
+        echo "  - Network connectivity issues"
+        echo "  - Docker resource constraints"
+        echo ""
+        print_status "Checking ZAP container status..."
+        docker ps | grep codeclinic-zap || print_warning "ZAP container is not running"
+        print_status "Checking ZAP logs..."
+        docker logs codeclinic-zap --tail 20 2>/dev/null || print_warning "Could not retrieve ZAP logs"
+        echo ""
+        print_status "You can try:"
+        echo "  1. Increase Docker memory allocation (4GB+ recommended)"
+        echo "  2. Restart Docker service: sudo systemctl restart docker"
+        echo "  3. Try again: ./scripts/start-codeclinic.sh"
+        exit 1
+    fi
 }
+
 
 # Install Python dependencies
 install_dependencies() {
@@ -170,17 +224,17 @@ pip install -r requirements.txt
     cd ../..
 }
 
-# Start the backend with parallel scanning
+# Start the backend with simplified parallel scanning
 start_backend() {
-    print_status "Starting CodeClinic backend with parallel scanning..."
+    print_status "Starting CodeClinic backend with simplified parallel scanning..."
     
     cd src/backend
     source venv/bin/activate
     
     # Set environment variables
     export REDIS_URL="redis://localhost:6379"
-    export ZAP_WORKERS="4"
-    export ZAP_PORTS="8080,8081,8082,8083"
+    export ZAP_HOST="localhost"
+    export ZAP_PORT="8080"
     
     # Start the backend
     print_status "Starting FastAPI server..."
@@ -230,9 +284,9 @@ FRONTEND_PID=$!
     cd ../..
 }
 
-# Test parallel scanning
-test_parallel_scanning() {
-    print_status "Testing parallel scanning system..."
+# Test simplified scanning system
+test_scanning_system() {
+    print_status "Testing simplified scanning system..."
     
     # Wait a moment for everything to be ready
     sleep 5
@@ -245,7 +299,7 @@ test_parallel_scanning() {
     print_status "Checking health endpoint..."
     curl -s http://localhost:8000/health | jq '.' || print_warning "Could not get health status"
     
-    print_success "Parallel scanning system is ready!"
+    print_success "Simplified scanning system is ready!"
 }
 
 # Cleanup function
@@ -254,19 +308,17 @@ cleanup() {
     
     # Stop backend
     if [ ! -z "$BACKEND_PID" ]; then
-    kill $BACKEND_PID 2>/dev/null
+        kill $BACKEND_PID 2>/dev/null
     fi
     
     # Stop frontend
     if [ ! -z "$FRONTEND_PID" ]; then
-    kill $FRONTEND_PID 2>/dev/null
+        kill $FRONTEND_PID 2>/dev/null
     fi
     
-    # Stop ZAP workers
-    for i in {1..4}; do
-        docker stop codeclinic-zap-$i 2>/dev/null
-        docker rm codeclinic-zap-$i 2>/dev/null
-    done
+    # Stop ZAP
+    docker stop codeclinic-zap 2>/dev/null
+    docker rm codeclinic-zap 2>/dev/null
     
     # Stop Redis
     docker stop codeclinic-redis 2>/dev/null
@@ -277,7 +329,7 @@ cleanup() {
 
 # Main setup function
 main() {
-    print_status "Starting CodeClinic Parallel Scanning Setup"
+    print_status "Starting CodeClinic Simplified Parallel Scanning Setup"
     echo ""
     
     # Check prerequisites
@@ -293,13 +345,21 @@ main() {
         exit 1
     fi
     
+    # Check system resources
+    check_docker_resources
+    
     # Setup Redis
     if ! check_redis; then
         exit 1
     fi
     
-    # Start ZAP workers
-    start_zap_workers 4
+    # Start single ZAP instance
+    start_zap
+    
+    # Check ZAP resource usage
+    print_status "Checking ZAP resource usage..."
+    sleep 5  # Give ZAP a moment to settle
+    check_docker_resources
     
     # Install dependencies
     install_dependencies
@@ -309,10 +369,10 @@ main() {
     start_frontend
     
     # Test the system
-    test_parallel_scanning
+    test_scanning_system
     
     echo ""
-    print_success "🎉 CodeClinic Parallel Scanning System is ready!"
+    print_success "🎉 CodeClinic Simplified Parallel Scanning System is ready!"
     echo ""
     echo "📡 Services:"
     echo "  - Backend API: http://localhost:8000"
@@ -320,21 +380,19 @@ main() {
     echo "  - API Docs: http://localhost:8000/docs"
     echo "  - System Status: http://localhost:8000/system/status"
     echo ""
-    echo "🔍 ZAP Workers:"
-    echo "  - Worker 1: http://localhost:8080"
-    echo "  - Worker 2: http://localhost:8081"
-    echo "  - Worker 3: http://localhost:8082"
-    echo "  - Worker 4: http://localhost:8083"
+    echo "🔍 ZAP Instance:"
+    echo "  - ZAP: http://localhost:8080"
     echo ""
-    echo "🚀 Performance: Up to 4x faster scanning with parallel processing!"
+    echo "🚀 Performance: Thread-based parallel processing with single ZAP instance!"
+    echo "💡 Benefits: Simpler setup, lower resource usage, real vulnerability scanning"
     echo ""
     echo "Press Ctrl+C to stop all services"
     
     # Set trap for cleanup
-trap cleanup SIGINT SIGTERM
+    trap cleanup SIGINT SIGTERM
 
-# Wait for user to stop
-wait
+    # Wait for user to stop
+    wait
 }
 
 # Run main function

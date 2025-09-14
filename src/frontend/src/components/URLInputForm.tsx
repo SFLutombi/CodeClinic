@@ -1,15 +1,13 @@
 "use client";
 
 import { useState } from 'react';
-import { ScanType } from '@/types/scan';
 
 interface URLInputFormProps {
-  onScanStart: (url: string, scanType: ScanType) => void;
+  onCrawlStart: (url: string) => void;
 }
 
-export default function URLInputForm({ onScanStart }: URLInputFormProps) {
+export default function URLInputForm({ onCrawlStart }: URLInputFormProps) {
   const [url, setUrl] = useState('');
-  const [scanType, setScanType] = useState<ScanType>('full_site');
   const [isValidating, setIsValidating] = useState(false);
 
   const validateUrl = (url: string): boolean => {
@@ -55,10 +53,10 @@ export default function URLInputForm({ onScanStart }: URLInputFormProps) {
         mode: 'no-cors' // This will work for same-origin or CORS-enabled sites
       });
       
-      onScanStart(normalizedUrl, scanType);
+      onCrawlStart(normalizedUrl);
     } catch (error) {
-      // Even if CORS fails, we can still try the scan
-      onScanStart(normalizedUrl, scanType);
+      // Even if CORS fails, we can still try the crawl
+      onCrawlStart(normalizedUrl);
     } finally {
       setIsValidating(false);
     }
@@ -105,69 +103,6 @@ export default function URLInputForm({ onScanStart }: URLInputFormProps) {
             </div>
           </div>
 
-          {/* Scan Type Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Scan Type
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div
-                className={`relative cursor-pointer rounded-lg p-4 border-2 transition-all ${
-                  scanType === 'full_site'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => setScanType('full_site')}
-              >
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <input
-                      type="radio"
-                      name="scanType"
-                      value="full_site"
-                      checked={scanType === 'full_site'}
-                      onChange={() => setScanType('full_site')}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                    />
-                  </div>
-                  <div className="ml-3">
-                    <h4 className="text-sm font-medium text-gray-900">Full Site Scan</h4>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Comprehensive scan of all discovered pages (slower, more thorough)
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className={`relative cursor-pointer rounded-lg p-4 border-2 transition-all ${
-                  scanType === 'selective_pages'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => setScanType('selective_pages')}
-              >
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <input
-                      type="radio"
-                      name="scanType"
-                      value="selective_pages"
-                      checked={scanType === 'selective_pages'}
-                      onChange={() => setScanType('selective_pages')}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                    />
-                  </div>
-                  <div className="ml-3">
-                    <h4 className="text-sm font-medium text-gray-900">Selective Pages</h4>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Choose specific pages to scan (faster, more targeted)
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Submit Button */}
           <button
@@ -184,7 +119,7 @@ export default function URLInputForm({ onScanStart }: URLInputFormProps) {
                 Validating URL...
               </div>
             ) : (
-              'Start Security Checkup'
+              'Start Crawling'
             )}
           </button>
         </form>
@@ -200,8 +135,8 @@ export default function URLInputForm({ onScanStart }: URLInputFormProps) {
             <div className="ml-3">
               <h4 className="text-sm font-medium text-blue-800">What happens next?</h4>
               <p className="text-sm text-blue-700 mt-1">
-                We'll crawl your website, run security tests, and provide you with a detailed 
-                health report including vulnerabilities and recommendations.
+                We'll first crawl your website to discover all pages, then you can choose which pages 
+                to scan for security vulnerabilities.
               </p>
             </div>
           </div>

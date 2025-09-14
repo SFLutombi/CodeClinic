@@ -10,7 +10,7 @@ import uvicorn
 from typing import List, Optional
 import logging
 
-from models import ScanRequest, ScanResponse
+from models import ScanRequest, ScanResponse, CrawlRequest, PageSelectionRequest
 from url_validator import URLValidator
 from simple_scanner import SimpleParallelScanner
 
@@ -72,13 +72,11 @@ async def start_scan(request: ScanRequest):
         # Convert Pydantic URL to string
         url_str = str(request.url)
         
-        # Validate URL
+        # Basic URL format validation only
         if not url_validator.is_valid_url(url_str):
             raise HTTPException(status_code=400, detail="Invalid URL format")
         
-        # Check if URL is accessible
-        if not await url_validator.is_accessible(url_str):
-            raise HTTPException(status_code=400, detail="URL is not accessible")
+        logger.info(f"Starting scan for URL: {url_str}")
         
         # Start scan using simplified scanner
         task_id = await scanner.start_scan(url_str, request.scan_type)
@@ -133,6 +131,82 @@ async def get_scan_results(scan_id: str):
     except Exception as e:
         logger.error(f"Error getting scan results: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get scan results")
+
+
+@app.post("/crawl/start", response_model=ScanResponse)
+async def start_crawl(request: CrawlRequest):
+    """
+    Start crawling a website to discover pages
+    This is the first step in the improved workflow
+    """
+    try:
+        # Convert Pydantic URL to string
+        url_str = str(request.url)
+        
+        # Basic URL format validation only
+        if not url_validator.is_valid_url(url_str):
+            raise HTTPException(status_code=400, detail="Invalid URL format")
+        
+        logger.info(f"Starting crawl for URL: {url_str}")
+        
+        # Start crawl using simplified scanner
+        task_id = await scanner.start_crawl(url_str)
+        message = "Crawl initiated successfully"
+        
+        return ScanResponse(
+            scan_id=task_id,
+            status="started",
+            message=message
+        )
+        
+    except Exception as e:
+        logger.error(f"Error starting crawl: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to start crawl: {str(e)}")
+
+
+@app.get("/crawl/{scan_id}/pages")
+async def get_discovered_pages(scan_id: str):
+    """Get the pages discovered during crawling"""
+    try:
+        # Get task status from simplified scanner
+        task_status = scanner.get_task_status(scan_id)
+        if not task_status:
+            raise HTTPException(status_code=404, detail="Crawl not found")
+        
+        if task_status["status"] not in ["completed"]:
+            raise HTTPException(status_code=400, detail="Crawl not yet completed")
+        
+        # Return discovered pages
+        return {
+            "scan_id": scan_id,
+            "pages": task_status["results"].get("discovered_pages", []) if task_status["results"] else [],
+            "total_pages": len(task_status["results"].get("discovered_pages", [])) if task_status["results"] else 0
+        }
+    except Exception as e:
+        logger.error(f"Error getting discovered pages: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get discovered pages")
+
+
+@app.post("/scan/start-selected", response_model=ScanResponse)
+async def start_selected_scan(request: PageSelectionRequest):
+    """
+    Start scanning selected pages after crawling
+    This is the second step in the improved workflow
+    """
+    try:
+        # Start scan for selected pages using simplified scanner
+        task_id = await scanner.start_scan_selected(request.scan_id, request.selected_pages)
+        message = "Selected page scan initiated successfully"
+        
+        return ScanResponse(
+            scan_id=task_id,
+            status="started",
+            message=message
+        )
+        
+    except Exception as e:
+        logger.error(f"Error starting selected scan: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to start selected scan: {str(e)}")
 
 
 @app.get("/system/status")

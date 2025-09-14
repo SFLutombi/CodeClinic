@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class URLValidator:
     """URL validation and accessibility checking"""
     
-    def __init__(self, timeout: int = 10):
+    def __init__(self, timeout: int = 5):
         self.timeout = timeout
     
     def is_valid_url(self, url: str) -> bool:

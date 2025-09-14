@@ -1,102 +1,91 @@
-# CodeClinic Scripts
+CodeClinic 🩺💻
 
-This directory contains automation scripts for easy CodeClinic setup and management.
+Where we treat websites like patients and cure their vulnerabilities.
 
-## 🚀 Quick Start Scripts
+Introduction
 
-### 1. Docker Compose Startup (Recommended)
-```bash
-./scripts/start-docker.sh
-```
-**Best for**: Quick setup with minimal configuration
-- Starts all services with Docker Compose
-- Automatic health checks
-- Easy cleanup with Ctrl+C
+Welcome to CodeClinic, a project born from the growing epidemic of poorly secured websites.
 
-### 2. Manual Setup Script
-```bash
-./scripts/start-codeclinic.sh
-```
-**Best for**: Development and customization
-- Manual Docker container management
-- Individual service control
-- Detailed logging and debugging
+With the rise of AI-powered website builders, creating apps has never been easier. But this lowered skill floor has also led to widespread neglect of security best practices; exposing businesses, developers, and users to risks.
 
-## 📋 What Each Script Does
+At CodeClinic, we bring security back into focus by offering developers a quick and gamified check-up for their websites:
 
-### `start-docker.sh`
-- ✅ Checks Docker and Docker Compose installation
-- ✅ Verifies Docker permissions
-- ✅ Starts all services with `docker-compose up -d`
-- ✅ Tests service health
-- ✅ Provides cleanup on exit
+Diagnosis: Run your site URL through our system and receive a structured, clinic-style health report.
 
-### `start-codeclinic.sh`
-- ✅ Checks Docker installation and permissions
-- ✅ Starts Redis container
-- ✅ Starts single ZAP instance
-- ✅ Installs Python dependencies
-- ✅ Starts backend and frontend manually
-- ✅ Tests scanning system
-- ✅ Provides cleanup on exit
+Awareness: Vulnerabilities are explained in plain language, with guidance on why they matter and how to fix them.
 
-## 🔧 Prerequisites
+Engagement: Each result includes trivia and mini-missions, ensuring developers leave informed.
 
-Both scripts require:
-- **Docker** installed and running
-- **Docker Compose** (for start-docker.sh)
-- **Internet connection** for downloading images
-- **Ports 3000, 8000, 8080, 6379** available
+Gamification: Earn badges, climb leaderboards, and play short security games that build awareness in an interactive way.
 
-## 🛠️ Troubleshooting
+We’re turning security testing into a fun, educational, and impactful experience that makes developers want to come back for more.
 
-### Docker Permission Issues
-```bash
-# Add user to docker group
-sudo usermod -aG docker $USER
+How We Meet the Judging Criteria
+✅ 1. Creativity & Innovation
 
-# Log out and back in, or restart
-# Or run with sudo (not recommended)
-sudo ./scripts/start-docker.sh
-```
+Fresh medical-clinic metaphor for security diagnosis.
 
-### Port Conflicts
-```bash
-# Check what's using the ports
-sudo netstat -tulpn | grep :3000
-sudo netstat -tulpn | grep :8000
-sudo netstat -tulpn | grep :8080
-sudo netstat -tulpn | grep :6379
+Combines static security scanning + AI explanations + gamified learning.
 
-# Stop conflicting services
-sudo systemctl stop [service-name]
-```
+Turns what is usually a dry, technical report into an engaging, story-driven experience.
 
-### Clean Restart
-```bash
-# Stop all containers
-docker-compose down
+✅ 2. Problem-Solving & Relevance
 
-# Remove all containers and images
-docker system prune -a
+Tackles the epidemic of insecure AI-generated and low-skill websites.
 
-# Restart with script
-./scripts/start-docker.sh
-```
+Provides fast, accessible security diagnostics without requiring deep expertise.
 
-## 📊 Service URLs
+Encourages developers to adopt best practices through playful learning.
 
-After successful startup:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **ZAP Interface**: http://localhost:8080
-- **Health Check**: http://localhost:8000/health
+✅ 3. Impact & Potential
 
-## 🎯 Usage Tips
+Beneficiaries: small dev teams, indie hackers, startups, and students.
 
-1. **First Time**: Use `start-docker.sh` for easiest setup
-2. **Development**: Use `start-codeclinic.sh` for more control
-3. **Production**: Use `docker-compose up -d` directly
-4. **Debugging**: Check logs with `docker-compose logs -f`
-5. **Cleanup**: Press Ctrl+C or run `docker-compose down`
+Potential to integrate into dev workflows (CI/CD pipelines, AI coding agents).
+
+Scales globally as a lightweight, AI-powered security education tool.
+
+✅ 4. Feasibility / Practicality
+
+Built using ZAP scanner + backend parsing + Gemini AI.
+
+Already demonstrated as a working prototype with gamification hooks.
+
+Extensible roadmap: more games, deeper and faster scans, more engaging content.
+
+✅ 5. Communication
+
+Clear metaphor: “Websites are patients. We are the clinic.”
+
+UI designed for clarity: health vitals, prescriptions, patient history.
+
+✅ 6. Technical Execution
+
+Sound backend (ZAP scan parsing, structured vuln categories).
+
+AI integration for natural explanations and tailored advice.
+
+Frontend gamification elements (badges, leaderboards, trivia, missions).
+
+✅ 7. Functional MVP
+
+Working scan input → structured results → AI-powered explanations.
+
+Gamified UI with clinic-style dashboard and interactive trivia.
+
+
+✅ 8. Design & User Experience
+
+Clean medical-inspired dashboard theme (health vitals, prescriptions, lab reports).
+
+Simple workflows: paste URL → see results → learn + play.
+
+Visually cohesive, and engaging.
+
+✅ 9. Teamwork & Collaboration
+
+Clear division of tasks (backend scanning, AI integration, frontend gamification).
+
+Iterative process: Stage 1 MVP → Stage 2 structured data → Stage 3 UI polish.
+
+Collaborative spirit: both members contributes to both tech and narrative.

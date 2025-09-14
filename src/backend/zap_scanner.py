@@ -386,21 +386,43 @@ class ZAPScanner:
             if progress_callback:
                 progress_callback(10, "Setting up target...")
             
+            # Clear any existing context and start fresh
+            self.zap.core.new_session()
+            
             # Set target URL in ZAP context
             self.zap.core.access_url(base_url)
             
             if progress_callback:
                 progress_callback(20, "Target configured")
             
-            # Add selected pages to ZAP context
+            # Add selected pages to ZAP context and spider them first
             if progress_callback:
                 progress_callback(30, "Adding pages to scan scope...")
             
-            for page_url in selected_pages:
+            # First, spider each selected page to ensure they're properly discovered
+            for i, page_url in enumerate(selected_pages):
+                logger.info(f"Spidering page {i+1}/{len(selected_pages)}: {page_url}")
                 self.zap.core.access_url(page_url)
+                
+                # Start a quick spider scan for this page
+                spider_id = self.zap.spider.scan(page_url, maxchildren=5, recurse=False)
+                if spider_id and spider_id != 0:
+                    # Wait briefly for spider to complete
+                    while int(self.zap.spider.status(spider_id)) < 100:
+                        time.sleep(0.5)
+                    logger.info(f"Spider completed for {page_url}")
             
             if progress_callback:
                 progress_callback(40, f"Added {len(selected_pages)} pages to scope")
+            
+            # Wait a moment for ZAP to process the pages
+            time.sleep(2)
+            
+            # Check ZAP's state before starting scan
+            sites = self.zap.core.sites()
+            logger.info(f"ZAP has {len(sites)} sites in context before scan")
+            for site in sites[:5]:  # Log first 5 sites
+                logger.info(f"  - {site}")
             
             # Start active scan on selected pages
             if progress_callback:
@@ -413,7 +435,17 @@ class ZAPScanner:
             try:
                 scan_id_int = int(ascan_id)
                 if scan_id_int <= 0:
-                    raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}")
+                    # Check if there are any URLs in ZAP's site tree
+                    sites = self.zap.core.sites()
+                    if not sites:
+                        raise Exception("No pages found in ZAP context - pages may not be accessible")
+                    else:
+                        # Try alternative approach - scan without inscopeonly
+                        logger.warning(f"First scan attempt failed (ID: {ascan_id}), trying alternative approach...")
+                        ascan_id = self.zap.ascan.scan(base_url, recurse=False, inscopeonly=False)
+                        scan_id_int = int(ascan_id)
+                        if scan_id_int <= 0:
+                            raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}. Found {len(sites)} sites in context.")
             except (ValueError, TypeError):
                 raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}")
             

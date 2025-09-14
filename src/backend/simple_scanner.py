@@ -341,6 +341,9 @@ class SimpleParallelScanner:
             def progress_callback(progress, message):
                 logger.info(f"Scan progress: {progress}% - {message}")
                 self.redis_client.hset(f"task:{task_id}", "progress", str(progress))
+                # Also update the task in memory
+                if task_id in self.tasks:
+                    self.tasks[task_id].progress = progress
             
             # Perform the scan
             results = zap_scanner.scan_url(url, progress_callback=progress_callback)
@@ -397,6 +400,9 @@ class SimpleParallelScanner:
             def progress_callback(progress, message):
                 logger.info(f"Crawl progress: {progress}% - {message}")
                 self.redis_client.hset(f"task:{task_id}", "progress", str(progress))
+                # Also update the task in memory
+                if task_id in self.tasks:
+                    self.tasks[task_id].progress = progress
             
             # Perform the crawl
             results = zap_scanner.crawl_url(url, progress_callback=progress_callback)
@@ -433,6 +439,9 @@ class SimpleParallelScanner:
             def progress_callback(progress, message):
                 logger.info(f"Scan progress: {progress}% - {message}")
                 self.redis_client.hset(f"task:{task_id}", "progress", str(progress))
+                # Also update the task in memory
+                if task_id in self.tasks:
+                    self.tasks[task_id].progress = progress
             
             # Perform the scan for selected pages
             results = zap_scanner.scan_selected_pages(url, selected_pages, progress_callback=progress_callback)

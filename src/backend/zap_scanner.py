@@ -31,7 +31,8 @@ class ZAPScanner:
             
             # Test connection
             version = self.zap.core.version
-            logger.info(f"Connected to ZAP version {version}")
+            version_str = version[0] if isinstance(version, list) and version else str(version)
+            logger.info(f"Connected to ZAP version {version_str}")
             return True
             
         except Exception as e:

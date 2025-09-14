@@ -25,6 +25,10 @@ Follow the steps below to set up and run CodeClinic - your security health asses
 - **Docker Compose** (recommended for easy setup)
 - **OWASP ZAP** (automatically started via Docker)
 
+### Optional AI Features
+- **Google Gemini API Key** (for AI-powered vulnerability explanations)
+- **Supabase Account** (for user authentication and data persistence)
+
 ---
 
 ## ⚙️ Installation
@@ -51,6 +55,14 @@ source venv/bin/activate
 
 # Install Python dependencies
 pip install -r requirements.txt
+
+# Optional: Install AI dependencies
+pip install google-generativeai supabase
+
+# Create .env file with your API keys (optional)
+echo "GEMINI_API_KEY=your_gemini_api_key_here" > .env
+echo "SUPABASE_URL=your_supabase_url_here" >> .env
+echo "SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_key_here" >> .env
 ```
 
 ### 3. Frontend Setup
@@ -60,6 +72,12 @@ cd src/frontend
 
 # Install Node.js dependencies
 npm install
+
+# Optional: Create .env.local file for additional features
+echo "NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here" > .env.local
+echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here" >> .env.local
+echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here" >> .env.local
+echo "CLERK_SECRET_KEY=your_clerk_secret_key_here" >> .env.local
 ```
 
 ### 4. Infrastructure Setup
@@ -89,21 +107,7 @@ docker run -d -p 8080:8080 --name zap ghcr.io/zaproxy/zaproxy:stable zap.sh -dae
 
 ## ▶️ Running the Project
 
-### Option 1: Automated Startup Script (Recommended)
-```bash
-# Start all services with one command
-./scripts/start-codeclinic.sh
-
-# This script will:
-# - Check Docker installation and permissions
-# - Start Redis container
-# - Start ZAP with proper API configuration
-# - Install Python dependencies
-# - Start backend and frontend services
-# - Run system tests
-```
-
-### Option 2: Docker Compose
+### Option 1: Docker Compose (Recommended)
 ```bash
 # Start all services
 docker-compose up -d
@@ -115,7 +119,7 @@ docker-compose ps
 docker-compose logs -f
 ```
 
-### Option 3: Manual Setup
+### Option 2: Manual Setup
 ```bash
 # 1. Start infrastructure (if not using Docker Compose)
 docker run -d -p 6379:6379 --name redis redis:7-alpine
@@ -147,10 +151,28 @@ npm run dev
 
 ---
 
+## 🎯 Features
+
+### Basic Mode (No AI/Database)
+- ✅ Real OWASP ZAP security scanning
+- ✅ Interactive security health dashboard
+- ✅ Vulnerability analysis and reporting
+- ✅ Medical clinic-inspired UI
+- ✅ Page selection and targeted scanning
+
+### Advanced Mode (With AI/Database)
+- ✅ AI-powered vulnerability explanations (Gemini API)
+- ✅ User authentication and progress tracking
+- ✅ Interactive quiz system
+- ✅ Leaderboard and rankings
+- ✅ XP and badge system
+
+---
+
 ## 🐳 Docker Architecture
 
 ### Simplified Container Setup
-The new architecture uses a simplified approach:
+The architecture uses a simplified approach:
 
 ```yaml
 services:
@@ -160,7 +182,7 @@ services:
   frontend:  # Next.js application
 ```
 
-### Benefits of New Architecture
+### Benefits of Architecture
 - **Simpler Setup**: One ZAP container instead of four
 - **Better Performance**: Thread-based parallelism
 - **Lower Resource Usage**: Reduced memory and CPU requirements
@@ -199,17 +221,39 @@ services:
    - View logs: `docker-compose logs [service-name]`
    - Restart all services: `docker-compose restart`
 
-6. **Startup Script Issues**
-   - ZAP takes 2-5 minutes to initialize (this is normal)
-   - If ZAP fails to start: `./scripts/zap-troubleshoot.sh`
-   - Check system resources: `./scripts/zap-troubleshoot.sh --resources`
-   - View ZAP logs: `./scripts/zap-troubleshoot.sh --logs`
+6. **AI Features Not Working**
+   - **Error: `Gemini API not available`**
+     - Add your Gemini API key to the `.env` file
+     - Install with: `pip install google-generativeai`
+   - **Error: `Supabase client not available`**
+     - This is expected if you haven't set up Supabase yet
+     - The backend will work without database features
+     - Install with: `pip install supabase`
 
 ### Getting Help
 - Check the API documentation at http://localhost:8000/docs
 - Review container logs: `docker-compose logs -f`
 - Ensure all services are running on correct ports
 - Check health endpoints: http://localhost:8000/health
+
+---
+
+## 📝 Environment Variables
+
+### Backend (.env) - Optional
+```
+GEMINI_API_KEY=your_gemini_api_key
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_key
+```
+
+### Frontend (.env.local) - Optional
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+```
 
 ---
 
@@ -220,3 +264,4 @@ services:
 - **Scanning**: Real OWASP ZAP API integration with thread-based parallelism
 - **Architecture**: Simplified single-ZAP instance with Redis coordination
 - **Theme**: Medical clinic-inspired UI for security assessment
+- **AI Integration**: Optional Gemini API for intelligent vulnerability explanations

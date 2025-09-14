@@ -387,8 +387,10 @@ class ZAPScanner:
             if progress_callback:
                 progress_callback(10, "Setting up target...")
             
-            # Clear any existing context and start fresh
-            self.zap.core.new_session()
+            # Only clear session for new scans, not for selected page scans
+            # (selected page scans should build on existing crawl results)
+            if len(selected_pages) == 0:  # This indicates a fresh scan
+                self.zap.core.new_session()
             
             # Set target URL in ZAP context
             self.zap.core.access_url(base_url)
@@ -420,10 +422,16 @@ class ZAPScanner:
             time.sleep(2)
             
             # Check ZAP's state before starting scan
-            sites = self.zap.core.sites()
-            logger.info(f"ZAP has {len(sites)} sites in context before scan")
-            for site in sites[:5]:  # Log first 5 sites
-                logger.info(f"  - {site}")
+            try:
+                sites = self.zap.core.sites()
+                if isinstance(sites, list):
+                    logger.info(f"ZAP has {len(sites)} sites in context before scan")
+                    for site in sites[:5]:  # Log first 5 sites
+                        logger.info(f"  - {site}")
+                else:
+                    logger.info(f"ZAP sites data: {sites}")
+            except Exception as e:
+                logger.warning(f"Could not get ZAP sites: {e}")
             
             # Start active scan on selected pages
             if progress_callback:
@@ -437,16 +445,20 @@ class ZAPScanner:
                 scan_id_int = int(ascan_id)
                 if scan_id_int <= 0:
                     # Check if there are any URLs in ZAP's site tree
-                    sites = self.zap.core.sites()
-                    if not sites:
-                        raise Exception("No pages found in ZAP context - pages may not be accessible")
-                    else:
-                        # Try alternative approach - scan without inscopeonly
-                        logger.warning(f"First scan attempt failed (ID: {ascan_id}), trying alternative approach...")
-                        ascan_id = self.zap.ascan.scan(base_url, recurse=False, inscopeonly=False)
-                        scan_id_int = int(ascan_id)
-                        if scan_id_int <= 0:
-                            raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}. Found {len(sites)} sites in context.")
+                    try:
+                        sites = self.zap.core.sites()
+                        sites_count = len(sites) if isinstance(sites, list) else 0
+                        if sites_count == 0:
+                            raise Exception("No pages found in ZAP context - pages may not be accessible")
+                        else:
+                            # Try alternative approach - scan without inscopeonly
+                            logger.warning(f"First scan attempt failed (ID: {ascan_id}), trying alternative approach...")
+                            ascan_id = self.zap.ascan.scan(base_url, recurse=False, inscopeonly=False)
+                            scan_id_int = int(ascan_id)
+                            if scan_id_int <= 0:
+                                raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}. Found {sites_count} sites in context.")
+                    except Exception as sites_error:
+                        raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}. Sites check failed: {sites_error}")
             except (ValueError, TypeError):
                 raise Exception(f"Failed to start active scan - invalid scan ID: {ascan_id}")
             
@@ -540,10 +552,11 @@ class ZAPScanner:
         try:
             # Try to get the title from ZAP's site tree
             site_tree = self.zap.core.sites()
-            for site in site_tree:
-                if url in site:
-                    # This is a simplified approach - in reality you'd need to parse the site tree
-                    return f"Page from {url}"
+            if isinstance(site_tree, list):
+                for site in site_tree:
+                    if url in site:
+                        # This is a simplified approach - in reality you'd need to parse the site tree
+                        return f"Page from {url}"
             return "Discovered Page"
         except:
             return "Discovered Page"

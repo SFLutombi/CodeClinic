@@ -185,7 +185,7 @@ export default function LeaderboardPage() {
                             {entry.full_name || entry.username || 'Anonymous'}
                           </h3>
                           {entry.username && entry.username !== entry.full_name && (
-                            <p className="text-sm text-gray-500">@{entry.username}</p>
+                            <p className="text-sm text-gray-600">@{entry.username}</p>
                           )}
                         </div>
                       </div>
@@ -196,14 +196,14 @@ export default function LeaderboardPage() {
                         <div className="text-xl font-bold text-blue-600">
                           {entry.total_xp.toLocaleString()}
                         </div>
-                        <div className="text-xs text-gray-500">XP</div>
+                        <div className="text-xs text-gray-600">XP</div>
                       </div>
                       
                       <div className="text-center">
                         <div className="text-lg font-semibold text-purple-600">
                           {entry.badges_earned.length}
                         </div>
-                        <div className="text-xs text-gray-500">Badges</div>
+                        <div className="text-xs text-gray-600">Badges</div>
                       </div>
                     </div>
                   </div>
@@ -240,20 +240,6 @@ export default function LeaderboardPage() {
             <p className="text-gray-600 mb-4">
               Take cybersecurity quizzes to earn XP, badges, and improve your ranking!
             </p>
-            <div className="flex justify-center space-x-4">
-              <a
-                href="/gemini-questions"
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                🧠 Take Quiz
-              </a>
-              <a
-                href="/explore"
-                className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-              >
-                🔍 Explore Scans
-              </a>
-            </div>
           </div>
         </div>
       </div>

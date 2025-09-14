@@ -148,12 +148,12 @@ export default function ScanProgress({ scanId }: ScanProgressProps) {
               </div>
               <div className="ml-4">
                 <h4 className={`text-sm font-medium ${
-                  index <= currentStep ? 'text-green-900' : 'text-gray-500'
+                  index <= currentStep ? 'text-green-900' : 'text-gray-600'
                 }`}>
                   {step.name}
                 </h4>
                 <p className={`text-sm ${
-                  index <= currentStep ? 'text-green-700' : 'text-gray-400'
+                  index <= currentStep ? 'text-green-700' : 'text-gray-500'
                 }`}>
                   {step.description}
                 </p>
@@ -164,7 +164,7 @@ export default function ScanProgress({ scanId }: ScanProgressProps) {
 
         {/* Status Message */}
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-600">
             This may take a few minutes depending on the size of your website
           </p>
         </div>

@@ -12,9 +12,9 @@ import asyncio
 from typing import List, Optional, Dict, Any
 import logging
 
-from models import ScanRequest, ScanResponse, Vulnerability, ScanStatus
-from zap_integration import ZAPScanner
-from url_validator import URLValidator
+from models import ScanRequest, ScanResponse
+# from zap_integration import ZAPScanner
+# from url_validator import URLValidator
 from gemini_integration import gemini_integration, ZAPDataRequest, GameResponse
 from pydantic import BaseModel
 
@@ -320,7 +320,7 @@ async def generate_questions_from_scan(scan_id: str, num_questions: int = 25):
         logger.error(f"Error generating questions from scan {scan_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
 
-def _format_vulnerabilities_for_gemini(vulnerabilities: List[Vulnerability]) -> str:
+def _format_vulnerabilities_for_gemini(vulnerabilities) -> str:
     """Format vulnerabilities list into ZAP data format for Gemini"""
     if not vulnerabilities:
         return "No vulnerabilities found in scan."

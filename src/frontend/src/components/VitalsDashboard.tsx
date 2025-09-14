@@ -81,7 +81,7 @@ export default function VitalsDashboard({ vulnerabilities }: VitalsDashboardProp
                 stroke="currentColor"
                 strokeWidth="8"
                 fill="none"
-                className="text-gray-200"
+                className="text-gray-300"
               />
               {/* Progress circle */}
               <circle
@@ -130,7 +130,7 @@ export default function VitalsDashboard({ vulnerabilities }: VitalsDashboardProp
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">High Severity</p>
+              <p className="text-sm font-medium text-gray-600">High Severity</p>
               <p className="text-2xl font-bold text-red-600">{highSeverity}</p>
             </div>
           </div>
@@ -147,7 +147,7 @@ export default function VitalsDashboard({ vulnerabilities }: VitalsDashboardProp
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Medium Severity</p>
+              <p className="text-sm font-medium text-gray-600">Medium Severity</p>
               <p className="text-2xl font-bold text-orange-600">{mediumSeverity}</p>
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function VitalsDashboard({ vulnerabilities }: VitalsDashboardProp
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Low Severity</p>
+              <p className="text-sm font-medium text-gray-600">Low Severity</p>
               <p className="text-2xl font-bold text-yellow-600">{lowSeverity}</p>
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function VitalsDashboard({ vulnerabilities }: VitalsDashboardProp
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Informational</p>
+              <p className="text-sm font-medium text-gray-600">Informational</p>
               <p className="text-2xl font-bold text-blue-600">{infoSeverity}</p>
             </div>
           </div>
@@ -194,19 +194,19 @@ export default function VitalsDashboard({ vulnerabilities }: VitalsDashboardProp
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center">
             <div className="text-3xl font-bold text-gray-900">{totalVulns}</div>
-            <div className="text-sm text-gray-500">Total Issues Found</div>
+            <div className="text-sm text-gray-600">Total Issues Found</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-gray-900">
               {vulns.filter(v => v.type === 'xss').length}
             </div>
-            <div className="text-sm text-gray-500">XSS Vulnerabilities</div>
+            <div className="text-sm text-gray-600">XSS Vulnerabilities</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-gray-900">
               {vulns.filter(v => v.type === 'insecure_headers').length}
             </div>
-            <div className="text-sm text-gray-500">Header Issues</div>
+            <div className="text-sm text-gray-600">Header Issues</div>
           </div>
         </div>
       </div>

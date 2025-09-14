@@ -108,7 +108,7 @@ export default function PageSelection({ pages, onScanSelected, onScanAll }: Page
                   <h4 className="text-sm font-medium text-gray-900 truncate">
                     {page.title || 'Untitled Page'}
                   </h4>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
                     {page.status_code}
                   </span>
                 </div>
@@ -122,7 +122,7 @@ export default function PageSelection({ pages, onScanSelected, onScanAll }: Page
 
         {/* Action Buttons */}
         <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-600">
             {selectedPages.length > 0 
               ? `Ready to scan ${selectedPages.length} selected pages`
               : 'Select pages to scan or choose "Scan All Pages"'

@@ -244,7 +244,7 @@ export default function ExplorePage() {
                     <h3 className="text-lg font-semibold text-gray-900 truncate">
                       {scan.website_url}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-600">
                       {new Date(scan.scan_date).toLocaleDateString()}
                     </p>
                   </div>
@@ -254,7 +254,7 @@ export default function ExplorePage() {
                     <p className="text-sm text-gray-600">
                       Website: <span className="font-medium">{scan.website_title || 'Unknown Website'}</span>
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-600">
                       Created by {scan.created_by_full_name || scan.created_by_username || 'Anonymous'}
                     </p>
                   </div>

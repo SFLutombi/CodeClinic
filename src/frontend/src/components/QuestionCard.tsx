@@ -289,7 +289,7 @@ export default function QuestionCard({ question, questionNumber, onAnswer, onNex
           className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
             !isSubmitted
               ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-gray-300 text-gray-600 cursor-not-allowed'
           }`}
         >
           {isSubmitted ? 'Submitted' : 'Submit Answer'}

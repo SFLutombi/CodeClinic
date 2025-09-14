@@ -63,7 +63,7 @@ export default function GeminiQuestionsPage() {
   const { user, isLoaded } = useUser();
   const { session } = useSession();
   const [zapData, setZapData] = useState('');
-  const [numQuestions, setNumQuestions] = useState(20);
+  const [numQuestions, setNumQuestions] = useState<number | string>(20);
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [vulnerabilityGuide, setVulnerabilityGuide] = useState<VulnerabilityGuideEntry[]>([]);
@@ -310,20 +310,6 @@ export default function GeminiQuestionsPage() {
               💡 <strong>Ready to learn?</strong> Generate questions from your ZAP scan data below!
             </p>
           </div>
-          <div className="flex justify-center space-x-4">
-            <a
-              href="/explore"
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-            >
-              🔍 Explore Public Scans
-            </a>
-            <a
-              href="/leaderboard"
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
-            >
-              🏆 View Leaderboard
-            </a>
-          </div>
         </div>
 
         {/* Input Form */}
@@ -358,7 +344,17 @@ export default function GeminiQuestionsPage() {
                 min="1"
                 max="50"
                 value={numQuestions}
-                onChange={(e) => setNumQuestions(parseInt(e.target.value) || 20)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    setNumQuestions('');
+                  } else {
+                    const num = parseInt(value);
+                    if (!isNaN(num) && num >= 1 && num <= 50) {
+                      setNumQuestions(num);
+                    }
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -601,7 +597,7 @@ export default function GeminiQuestionsPage() {
                   <span className="text-sm text-gray-600">
                     Question {currentQuestionIndex + 1} of {questions.length}
                   </span>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-gray-600 mt-1">
                     💡 Use ← → arrow keys to navigate
                   </div>
                   <button
@@ -675,7 +671,7 @@ export default function GeminiQuestionsPage() {
             >
               ✅ Complete Game
             </button>
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs text-gray-600">
               Click this button to finish the quiz at any time
             </div>
           </div>

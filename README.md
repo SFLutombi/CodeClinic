@@ -77,4 +77,4 @@ We’re turning security testing into a **fun, educational, and impactful experi
 
 ---
 Powerpoint link: https://docs.google.com/presentation/d/1kZOl5xqewZRpM_LyRJE0-IkLRZsGGsQloG5H2Dw9s5o/edit?usp=sharing
-Demo-Video Link: 
+Demo-Video Link: https://www.loom.com/share/23218dc3ac374df78983d60e15747d7c?sid=9cf4c6b0-dbfa-45b9-8264-2d4442ab44fb

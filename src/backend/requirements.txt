@@ -12,23 +12,19 @@ requests==2.31.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
-# URL validation and crawling
+# URL validation
 validators==0.22.0
-beautifulsoup4==4.12.2
-lxml==4.9.3
-
-# Async support
-asyncio==3.4.3
-aiofiles==23.2.1
-
-# CORS for frontend communication
-fastapi-cors==0.0.6
 
 # Environment variables
 python-dotenv==1.0.0
 
-# Logging and monitoring
-loguru==0.7.2
+# Parallel scanning and coordination
+redis==5.0.1
+
+# Performance and concurrency (concurrent.futures is built-in for Python 3.8+)
+
+# ZAP Python API client
+python-owasp-zap-v2.4==0.0.20
 
 # AI integration
 google-generativeai>=0.8.0

@@ -17,7 +17,8 @@ CodeClinic is an interactive web application that transforms cybersecurity asses
 - **Patient History**: Track security improvements over time
 
 ### 🔍 **Comprehensive Security Scanning**
-- **OWASP ZAP Integration**: Industry-standard security testing
+- **OWASP ZAP Integration**: Industry-standard security testing with real API integration
+- **Simplified Architecture**: Single ZAP instance with thread-based parallel processing
 - **Multiple Scan Types**: Full site scans or selective page analysis
 - **Real-time Progress**: Live updates during scanning process
 - **Detailed Reporting**: Categorized vulnerabilities with evidence and solutions
@@ -70,7 +71,8 @@ The medical clinic metaphor was chosen because:
 - **Global Community**: Open-source contributions and extensions
 
 ### **Technical Improvements**
-- **Performance Optimization**: Faster scanning with parallel processing
+- **Performance Optimization**: Thread-based parallel processing with single ZAP instance
 - **Advanced Analytics**: Trend analysis and security metrics
 - **Custom Dashboards**: User-configurable reporting interfaces
 - **Automated Remediation**: Integration with CI/CD pipelines for automatic fixes
+- **Simplified Architecture**: Reduced complexity and resource usage

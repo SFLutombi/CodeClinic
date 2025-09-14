@@ -9,10 +9,11 @@ interface ScanProgressProps {
 export default function ScanProgress({ scanId }: ScanProgressProps) {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('Initializing scan...');
+  const [message, setMessage] = useState('Preparing security assessment...');
   const [currentStep, setCurrentStep] = useState(0);
 
   const steps = [
-    { name: 'Validating URL', description: 'Checking if the website is accessible' },
+    { name: 'Initializing', description: 'Setting up the security assessment' },
     { name: 'Discovering Pages', description: 'Crawling the website to find all pages' },
     { name: 'Running Security Tests', description: 'Scanning for vulnerabilities and security issues' },
     { name: 'Analyzing Results', description: 'Processing scan data and generating report' },
@@ -29,8 +30,9 @@ export default function ScanProgress({ scanId }: ScanProgressProps) {
         
         setProgress(data.progress || 0);
         setStatus(data.status || 'Scanning...');
+        setMessage(data.message || 'Processing...');
         
-        // Update current step based on progress
+        // Update current step based on progress and scan type
         const stepIndex = Math.floor((data.progress || 0) / 20);
         setCurrentStep(Math.min(stepIndex, steps.length - 1));
         
@@ -98,7 +100,7 @@ export default function ScanProgress({ scanId }: ScanProgressProps) {
                   {steps[currentStep]?.name || 'Processing...'}
                 </h3>
                 <p className="text-blue-700">
-                  {steps[currentStep]?.description || 'Please wait while we process your request...'}
+                  {message}
                 </p>
                 <div className="mt-2 text-sm text-blue-600 font-medium">
                   {progress}% Complete

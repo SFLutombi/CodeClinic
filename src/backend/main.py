@@ -1,12 +1,13 @@
 """
 CodeClinic Backend - FastAPI Server
 Main application entry point for the security assessment API
+Simplified parallel scanning with single ZAP instance and thread-based workers
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import uvicorn
+
 import asyncio
 from typing import List, Optional, Dict, Any
 import logging
@@ -16,7 +17,11 @@ from zap_integration import ZAPScanner
 from url_validator import URLValidator
 from gemini_integration import gemini_integration, ZAPDataRequest, GameResponse
 from pydantic import BaseModel
-from typing import Optional
+
+
+from models import ScanRequest, ScanResponse, CrawlRequest, PageSelectionRequest
+from simple_scanner import SimpleParallelScanner
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -66,12 +71,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize services
-zap_scanner = ZAPScanner()
-url_validator = URLValidator()
-
-# In-memory storage for scan results (in production, use Redis or database)
-scan_results = {}
+# Initialize simplified parallel scanning system
+scanner = SimpleParallelScanner(max_workers=4)
 
 @app.get("/")
 async def root():
@@ -86,13 +87,15 @@ async def health_check():
         "zap_available": await zap_scanner.is_zap_available(),
         "gemini_available": gemini_integration.is_available(),
         "supabase_available": supabase_client and supabase_client.is_available(),
+        "scanner_status": scanner.get_worker_status(),
         "version": "1.0.0"
     }
 
 @app.post("/scan/start", response_model=ScanResponse)
-async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
+async def start_scan(request: ScanRequest):
     """
     Start a security scan for the provided URL
+    Uses simplified parallel scanning with thread-based workers
     
     Args:
         request: ScanRequest containing URL and scan type
@@ -104,35 +107,16 @@ async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
         # Convert Pydantic URL to string
         url_str = str(request.url)
         
-        # Validate URL
-        if not url_validator.is_valid_url(url_str):
-            raise HTTPException(status_code=400, detail="Invalid URL format")
+        logger.info(f"Starting scan for URL: {url_str}")
         
-        # Check if URL is accessible
-        if not await url_validator.is_accessible(url_str):
-            raise HTTPException(status_code=400, detail="URL is not accessible")
-        
-        # Generate scan ID
-        scan_id = f"scan_{len(scan_results) + 1}_{int(asyncio.get_event_loop().time())}"
-        
-        # Initialize scan result
-        scan_results[scan_id] = {
-            "id": scan_id,
-            "url": url_str,
-            "scan_type": request.scan_type,
-            "status": "initializing",
-            "vulnerabilities": [],
-            "pages": [],
-            "progress": 0
-        }
-        
-        # Start background scan
-        background_tasks.add_task(run_scan, scan_id, url_str, request.scan_type)
+        # Start scan using simplified scanner
+        task_id = await scanner.start_scan(url_str, request.scan_type)
+        message = "Scan initiated successfully"
         
         return ScanResponse(
-            scan_id=scan_id,
+            scan_id=task_id,
             status="started",
-            message="Scan initiated successfully"
+            message=message
         )
         
     except Exception as e:
@@ -142,49 +126,44 @@ async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
 @app.get("/scan/{scan_id}/status")
 async def get_scan_status(scan_id: str):
     """Get the current status of a scan"""
-    if scan_id not in scan_results:
-        raise HTTPException(status_code=404, detail="Scan not found")
-    
-    return scan_results[scan_id]
+    try:
+        # Get status from simplified scanner
+        status = scanner.get_task_status(scan_id)
+        if not status:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        return status
+    except Exception as e:
+        logger.error(f"Error getting scan status: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get scan status")
 
-@app.get("/scan/{scan_id}/pages")
-async def get_discovered_pages(scan_id: str):
-    """Get discovered pages for selective scanning"""
-    if scan_id not in scan_results:
-        raise HTTPException(status_code=404, detail="Scan not found")
-    
-    scan_data = scan_results[scan_id]
-    if scan_data["status"] != "pages_discovered":
-        raise HTTPException(status_code=400, detail="Pages not yet discovered")
-    
-    return {"pages": scan_data["pages"]}
-
-@app.post("/scan/{scan_id}/select-pages")
-async def select_pages_for_scan(scan_id: str, selected_pages: List[str]):
-    """Select specific pages for scanning"""
-    if scan_id not in scan_results:
-        raise HTTPException(status_code=404, detail="Scan not found")
-    
-    scan_data = scan_results[scan_id]
-    scan_data["selected_pages"] = selected_pages
-    scan_data["status"] = "scanning_selected_pages"
-    
-    # Continue with selected pages scan
-    # This would trigger the actual ZAP scan
-    
-    return {"message": "Pages selected, scan continuing"}
 
 @app.get("/scan/{scan_id}/results")
 async def get_scan_results(scan_id: str):
     """Get the final scan results"""
-    if scan_id not in scan_results:
-        raise HTTPException(status_code=404, detail="Scan not found")
-    
-    scan_data = scan_results[scan_id]
-    if scan_data["status"] not in ["completed", "failed"]:
-        raise HTTPException(status_code=400, detail="Scan not yet completed")
-    
-    return scan_data
+    try:
+        # Get task status from simplified scanner
+        task_status = scanner.get_task_status(scan_id)
+        if not task_status:
+            raise HTTPException(status_code=404, detail="Scan not found")
+        
+        if task_status["status"] not in ["completed", "failed"]:
+            raise HTTPException(status_code=400, detail="Scan not yet completed")
+        
+        # Return results
+        return {
+            "id": scan_id,
+            "status": task_status["status"],
+            "progress": task_status["progress"],
+            "vulnerabilities": task_status["results"].get("vulnerabilities", []) if task_status["results"] else [],
+            "total_vulnerabilities": len(task_status["results"].get("vulnerabilities", [])) if task_status["results"] else 0,
+            "scan_duration": task_status["results"].get("scan_duration", 0) if task_status["results"] else 0,
+            "error": task_status.get("error")
+        }
+    except Exception as e:
+        logger.error(f"Error getting scan results: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get scan results")
+
+
 
 @app.post("/generate-game")
 async def generate_cybersec_game(
@@ -382,39 +361,117 @@ def _extract_website_from_zap_data(zap_data: str) -> str:
 
 async def run_scan(scan_id: str, url: str, scan_type: str):
     """Background task to run the actual scan"""
+
+@app.post("/crawl/start", response_model=ScanResponse)
+async def start_crawl(request: CrawlRequest):
+    """
+    Start crawling a website to discover pages
+    This is the first step in the improved workflow
+    """
     try:
-        logger.info(f"Starting scan {scan_id} for URL: {url}")
-        scan_results[scan_id]["status"] = "discovering_pages"
-        scan_results[scan_id]["progress"] = 10
+        # Convert Pydantic URL to string
+        url_str = str(request.url)
         
-        # Discover pages
-        logger.info(f"Discovering pages for {url}")
-        pages = await zap_scanner.discover_pages(url)
-        scan_results[scan_id]["pages"] = pages
-        scan_results[scan_id]["status"] = "pages_discovered"
-        scan_results[scan_id]["progress"] = 30
+        logger.info(f"Starting crawl for URL: {url_str}")
         
-        # If full site scan, continue automatically
-        if scan_type == "full_site":
-            scan_results[scan_id]["status"] = "scanning"
-            scan_results[scan_id]["progress"] = 50
-            
-            # Run ZAP scan
-            logger.info(f"Running ZAP scan for {url}")
-            vulnerabilities = await zap_scanner.run_scan(url, pages)
-            scan_results[scan_id]["vulnerabilities"] = vulnerabilities
-            scan_results[scan_id]["status"] = "completed"
-            scan_results[scan_id]["progress"] = 100
-            logger.info(f"Scan {scan_id} completed with {len(vulnerabilities)} vulnerabilities")
-            
-        # If selective scan, wait for page selection
+        # Start crawl using simplified scanner
+        task_id = await scanner.start_crawl(url_str)
+        message = "Crawl initiated successfully"
+        
+        return ScanResponse(
+            scan_id=task_id,
+            status="started",
+            message=message
+        )
+        
+    except Exception as e:
+        logger.error(f"Error starting crawl: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to start crawl: {str(e)}")
+
+
+@app.get("/crawl/{scan_id}/pages")
+async def get_discovered_pages(scan_id: str):
+    """Get the pages discovered during crawling"""
+    try:
+        # Get task status from simplified scanner
+        task_status = scanner.get_task_status(scan_id)
+        if not task_status:
+            raise HTTPException(status_code=404, detail="Crawl not found")
+        
+        if task_status["status"] not in ["completed"]:
+            raise HTTPException(status_code=400, detail="Crawl not yet completed")
+        
+        # Return discovered pages
+        return {
+            "scan_id": scan_id,
+            "pages": task_status["results"].get("discovered_pages", []) if task_status["results"] else [],
+            "total_pages": len(task_status["results"].get("discovered_pages", [])) if task_status["results"] else 0
+        }
+    except Exception as e:
+        logger.error(f"Error getting discovered pages: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get discovered pages")
+
+
+@app.post("/scan/start-selected", response_model=ScanResponse)
+async def start_selected_scan(request: PageSelectionRequest):
+    """
+    Start scanning selected pages after crawling
+    This is the second step in the improved workflow
+    """
+    try:
+        # Start scan for selected pages using simplified scanner
+        task_id = await scanner.start_scan_selected(request.scan_id, request.selected_pages)
+        message = "Selected page scan initiated successfully"
+        
+        return ScanResponse(
+            scan_id=task_id,
+            status="started",
+            message=message
+        )
+        
+    except Exception as e:
+        logger.error(f"Error starting selected scan: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to start selected scan: {str(e)}")
+
+
+@app.get("/system/status")
+async def get_system_status():
+    """Get system-wide status and performance metrics"""
+    try:
+        return {
+            "scanner_status": scanner.get_worker_status(),
+            "version": "1.0.0"
+        }
+    except Exception as e:
+        logger.error(f"Error getting system status: {str(e)}")
+        return {"error": "Failed to get system status"}
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize simplified parallel scanning system on startup"""
+    try:
+        logger.info("Starting CodeClinic with simplified parallel scanning...")
+        
+        # Initialize simplified scanner
+        if await scanner.initialize():
+            logger.info("✅ Simplified parallel scanning system initialized successfully")
+            logger.info(f"🚀 Performance boost: {scanner.max_workers} worker threads ready")
         else:
-            scan_results[scan_id]["status"] = "waiting_for_selection"
+            logger.warning("⚠️  Scanner initialization failed - using sequential mode")
             
     except Exception as e:
-        logger.error(f"Scan {scan_id} failed: {str(e)}", exc_info=True)
-        scan_results[scan_id]["status"] = "failed"
-        scan_results[scan_id]["error"] = str(e)
+        logger.error(f"❌ Failed to initialize scanner: {str(e)}")
+        logger.info("🔄 Falling back to sequential scanning mode")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    try:
+        logger.info("Shutting down simplified parallel scanning system...")
+        scanner.shutdown()
+        logger.info("CodeClinic shutdown complete")
+    except Exception as e:
+        logger.error(f"Error during shutdown: {str(e)}")
 
 # Database endpoints
 @app.post("/save-scan-results")

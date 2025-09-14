@@ -186,8 +186,28 @@ export default function Home() {
                 <p className="text-sm text-gray-600">Security Health Assessment</p>
               </div>
             </div>
-            <div className="text-sm text-gray-500">
-              Powered by OWASP ZAP
+            <div className="flex items-center space-x-4">
+              <a
+                href="/gemini-questions"
+                className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              >
+                🧠 AI Questions
+              </a>
+              <a
+                href="/explore"
+                className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              >
+                🔍 Explore
+              </a>
+              <a
+                href="/leaderboard"
+                className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              >
+                🏆 Leaderboard
+              </a>
+              <div className="text-sm text-gray-500">
+                Powered by OWASP ZAP
+              </div>
             </div>
           </div>
         </div>

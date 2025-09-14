@@ -26,5 +26,8 @@ redis==5.0.1
 # ZAP Python API client
 python-owasp-zap-v2.4==0.0.20
 
-# Optional: For future AI integration
-# google-generativeai==0.3.2
+# AI integration
+google-generativeai>=0.8.0
+
+# Database integration
+supabase==2.8.0

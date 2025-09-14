@@ -120,6 +120,11 @@ check_redis() {
         print_warning "Redis is not running. Starting Redis..."
         print_status "Downloading Redis image (this may take a moment)..."
         docker pull redis:7-alpine --quiet
+        
+        # Remove existing container if it exists
+        docker stop codeclinic-redis 2>/dev/null
+        docker rm codeclinic-redis 2>/dev/null
+        
         docker run -d --name codeclinic-redis -p 6379:6379 redis:7-alpine
         sleep 5
         if docker ps | grep -q redis; then
@@ -146,7 +151,7 @@ start_zap() {
         --name codeclinic-zap \
         -p 8080:8080 \
         ghcr.io/zaproxy/zaproxy:stable \
-        zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
+        zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
     
     print_status "Waiting for ZAP to be ready..."
     print_warning "ZAP is a heavyweight security scanner that can take 2-5 minutes to initialize on first startup"

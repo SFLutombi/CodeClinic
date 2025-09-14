@@ -1,3 +1,4 @@
+
 > *This document serves as a template for you to write **setup** instructions for your project.* 
 
 > Depending on the scale/complexity of your project, it may prove beneficial to have a **Python/Batch/Bash** script in the `scripts/` directory which *automatically sets-up* the project.
@@ -88,7 +89,21 @@ docker run -d -p 8080:8080 --name zap ghcr.io/zaproxy/zaproxy:stable zap.sh -dae
 
 ## ▶️ Running the Project
 
-### Option 1: Docker Compose (Recommended)
+### Option 1: Automated Startup Script (Recommended)
+```bash
+# Start all services with one command
+./scripts/start-codeclinic.sh
+
+# This script will:
+# - Check Docker installation and permissions
+# - Start Redis container
+# - Start ZAP with proper API configuration
+# - Install Python dependencies
+# - Start backend and frontend services
+# - Run system tests
+```
+
+### Option 2: Docker Compose
 ```bash
 # Start all services
 docker-compose up -d
@@ -100,7 +115,7 @@ docker-compose ps
 docker-compose logs -f
 ```
 
-### Option 2: Manual Setup
+### Option 3: Manual Setup
 ```bash
 # 1. Start infrastructure (if not using Docker Compose)
 docker run -d -p 6379:6379 --name redis redis:7-alpine
@@ -161,7 +176,8 @@ services:
 1. **ZAP Connection Error**
    - Ensure ZAP container is running: `docker ps | grep zap`
    - Check ZAP is accessible: `curl http://localhost:8080/JSON/core/view/version/`
-   - Restart ZAP container: `docker restart codeclinic-zap`
+   - Use troubleshooting script: `./scripts/zap-troubleshoot.sh`
+   - Restart ZAP container: `./scripts/zap-troubleshoot.sh --restart`
 
 2. **Redis Connection Error**
    - Ensure Redis container is running: `docker ps | grep redis`
@@ -182,6 +198,12 @@ services:
    - Check all services: `docker-compose ps`
    - View logs: `docker-compose logs [service-name]`
    - Restart all services: `docker-compose restart`
+
+6. **Startup Script Issues**
+   - ZAP takes 2-5 minutes to initialize (this is normal)
+   - If ZAP fails to start: `./scripts/zap-troubleshoot.sh`
+   - Check system resources: `./scripts/zap-troubleshoot.sh --resources`
+   - View ZAP logs: `./scripts/zap-troubleshoot.sh --logs`
 
 ### Getting Help
 - Check the API documentation at http://localhost:8000/docs
